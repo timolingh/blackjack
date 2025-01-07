@@ -77,11 +77,18 @@ class Stats:
             StatsCategory.TOTAL_NET_WINNINGS
         }
 
+        variance_stats = {
+            StatsCategory.MEAN_EARNINGS_PER_HAND,
+            StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES,
+            StatsCategory.EARNINGS_VARIANCE
+        }
+
         for category in StatsCategory:
-            if category in monetary_stats:
-                result[category.value] = totals.get(category.value, 0)
-            else:
-                result[category.value] = int(totals.get(category.value, 0))
+            if category not in variance_stats:
+                if category in monetary_stats:
+                    result[category.value] = totals.get(category.value, 0)
+                else:
+                    result[category.value] = int(totals.get(category.value, 0))
 
         result[StatsCategory.TOTAL_AMOUNT_BET.value] = self._get_total(totals, StatsCategory.AMOUNT_BET, StatsCategory.INSURANCE_AMOUNT_BET)
         result[StatsCategory.TOTAL_NET_WINNINGS.value] = self._get_total(totals, StatsCategory.NET_WINNINGS, StatsCategory.INSURANCE_NET_WINNINGS)
