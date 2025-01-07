@@ -17,6 +17,8 @@ class Stats:
     """
     def __init__(self):
         self._stats = defaultdict(float)
+        # For validation only - can uncomment to store list of values
+        # self.hand_results_at_zero_count = list()
 
     @property
     def stats(self) -> defaultdict[str, float]:
@@ -28,6 +30,30 @@ class Stats:
 
     def add_value(self, count: float | int | None, category: StatsCategory, value: float | int = 1) -> None:
         self._stats[StatsKey(count=count, category=category)] += value
+
+    def update_variance(self, count: float | int | None, value: float | int) -> None:
+        delta = value - self._stats[StatsKey(count=count, category=StatsCategory.MEAN_EARNINGS_PER_HAND)]
+        num_hands = self._stats[StatsKey(count=count, category=StatsCategory.TOTAL_HANDS_PLAYED)]
+        self._stats[StatsKey(count=count, category=StatsCategory.MEAN_EARNINGS_PER_HAND)] += (delta / num_hands)
+
+        ## Running variance using Welford's algorithm
+        if num_hands == 1:
+            self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES)] = 0
+            self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_VARIANCE)] = 0
+        else:
+            ## Note: delta_new is the diff between value and them UPDATED value for running mean.
+            delta_new = value - self._stats[StatsKey(count=count, category=StatsCategory.MEAN_EARNINGS_PER_HAND)]
+            sum_sq_update = delta * delta_new
+            ## Update S using formula S_n = S_(n-1) + delta * delta_new
+            self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES)] += sum_sq_update
+            self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_VARIANCE)] = (
+                self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES)] / (num_hands - 1)
+            )
+
+        ## for validation only - dont bother to group by count:
+        ## uncomment to store individual hand results
+        # if count == 0:
+        #     self.hand_results_at_zero_count.append(value)
 
     def _compute_totals(self) -> defaultdict[str, float]:
         totals: defaultdict[str, float] = defaultdict(float)
