@@ -1,6 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from blackjack.enums import StatsCategory
+import pandas as pd
 
 
 @dataclass(frozen=True)
@@ -63,9 +64,31 @@ class Stats:
 
     def _get_total(self, totals: defaultdict[str, float], *categories: StatsCategory) -> float:
         return sum(totals.get(category.value, 0) for category in categories)
+    
+    def _stats_dataframe(self) -> pd.DataFrame:
+        stats_data = [
+            {
+                'count': key.count, 
+                'category': key.category.name, 
+                'value': value
+            } 
+            for key, value in self._stats.items()
+        ]
+
+        return pd.DataFrame(stats_data).pivot_table(
+            index='count', columns='category', values='value', aggfunc='first'
+        )
+    
+    def _compute_pooled_variance(self) -> float:
+        stats_data_frame = self._stats_dataframe()
+        stats_data_frame = stats_data_frame.loc[stats_data_frame['TOTAL_HANDS_PLAYED'] > 1]
+        weighted_variance = sum((stats_data_frame['TOTAL_HANDS_PLAYED'] - 1) * stats_data_frame['EARNINGS_VARIANCE'])
+        degrees_of_freedom = sum(stats_data_frame['TOTAL_HANDS_PLAYED'] - 1)
+        return weighted_variance / degrees_of_freedom
 
     def summary(self, string: bool = True) -> dict[str, float | int] | str:
         totals = self._compute_totals()
+        pooled_variance = self._compute_pooled_variance()
         result = {}
 
         monetary_stats = {
@@ -80,10 +103,13 @@ class Stats:
         variance_stats = {
             StatsCategory.MEAN_EARNINGS_PER_HAND,
             StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES,
-            StatsCategory.EARNINGS_VARIANCE
+            StatsCategory.EARNINGS_VARIANCE,
+            StatsCategory.POOLED_VARIANCE
         }
 
         for category in StatsCategory:
+            if category == StatsCategory.POOLED_VARIANCE:
+                result[category.value] = pooled_variance
             if category not in variance_stats:
                 if category in monetary_stats:
                     result[category.value] = totals.get(category.value, 0)
