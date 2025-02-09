@@ -41,6 +41,7 @@ class Stats:
         if num_hands == 1:
             self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES)] = 0
             self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_VARIANCE)] = 0
+            self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_STD_DEV)] = 0
         else:
             ## Note: delta_new is the diff between value and them UPDATED value for running mean.
             delta_new = value - self._stats[StatsKey(count=count, category=StatsCategory.MEAN_EARNINGS_PER_HAND)]
@@ -50,6 +51,7 @@ class Stats:
             self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_VARIANCE)] = (
                 self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES)] / (num_hands - 1)
             )
+            self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_STD_DEV)] = (self._stats[StatsKey(count=count, category=StatsCategory.EARNINGS_VARIANCE)])**0.5
 
         ## for validation only - dont bother to group by count:
         ## uncomment to store individual hand results
@@ -79,16 +81,20 @@ class Stats:
             index='count', columns='category', values='value', aggfunc='first'
         )
     
-    def _compute_pooled_variance(self) -> float:
+    def _compute_pooled_variance(self) -> dict:
         stats_data_frame = self._stats_dataframe()
         stats_data_frame = stats_data_frame.loc[stats_data_frame['TOTAL_HANDS_PLAYED'] > 1]
         weighted_variance = sum((stats_data_frame['TOTAL_HANDS_PLAYED'] - 1) * stats_data_frame['EARNINGS_VARIANCE'])
         degrees_of_freedom = sum(stats_data_frame['TOTAL_HANDS_PLAYED'] - 1)
-        return weighted_variance / degrees_of_freedom
+        pooled_variance = weighted_variance / degrees_of_freedom
+        earnings_std_dev = (pooled_variance)**0.5
+        return {'pooled_variance': pooled_variance, 'earnings_std_dev': earnings_std_dev}
 
     def summary(self, string: bool = True) -> dict[str, float | int] | str:
         totals = self._compute_totals()
-        pooled_variance = self._compute_pooled_variance()
+        variance_metrics = self._compute_pooled_variance()
+        pooled_variance = variance_metrics['pooled_variance']
+        earnings_std_dev = variance_metrics['earnings_std_dev']
         result = {}
 
         monetary_stats = {
@@ -104,12 +110,15 @@ class Stats:
             StatsCategory.MEAN_EARNINGS_PER_HAND,
             StatsCategory.EARNINGS_SUM_OF_SQUARED_DIFFERENCES,
             StatsCategory.EARNINGS_VARIANCE,
-            StatsCategory.POOLED_VARIANCE
+            StatsCategory.POOLED_VARIANCE,
+            StatsCategory.EARNINGS_STD_DEV
         }
 
         for category in StatsCategory:
             if category == StatsCategory.POOLED_VARIANCE:
                 result[category.value] = pooled_variance
+            if category == StatsCategory.EARNINGS_STD_DEV:
+                result[category.value] = earnings_std_dev
             if category not in variance_stats:
                 if category in monetary_stats:
                     result[category.value] = totals.get(category.value, 0)
