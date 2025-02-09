@@ -97,6 +97,7 @@ def _update_blackjack_stats(
             player.stats.add_hand(count=count, category=StatsCategory.PLAYER_HANDS_PUSHED)
             player.stats.add_value(count=count, category=StatsCategory.PLAYER_BLACKJACKS)
             player.stats.add_value(count=count, category=StatsCategory.DEALER_BLACKJACKS)
+            player.stats.update_variance(count=count, value=0)
         else:
             player.adjust_bankroll(amount=placed_bet * (1 + blackjack_payout))
             player.stats.add_hand(count=count, category=StatsCategory.PLAYER_HANDS_WON)
@@ -106,6 +107,7 @@ def _update_blackjack_stats(
                 category=StatsCategory.NET_WINNINGS,
                 value=placed_bet * blackjack_payout
             )
+            player.stats.update_variance(count=count, value=placed_bet * blackjack_payout)
     else:
         player.stats.add_hand(count=count, category=StatsCategory.PLAYER_HANDS_LOST)
         player.stats.add_value(count=count, category=StatsCategory.DEALER_BLACKJACKS)
@@ -114,6 +116,7 @@ def _update_blackjack_stats(
             category=StatsCategory.NET_WINNINGS,
             value=placed_bet * -1
         )
+        player.stats.update_variance(count=count, value=placed_bet * -1)
 
 
 def _update_late_surrender_stats(player: Player, placed_bet: float | int, count: float | int | None) -> None:
@@ -125,6 +128,7 @@ def _update_late_surrender_stats(player: Player, placed_bet: float | int, count:
         category=StatsCategory.NET_WINNINGS,
         value=placed_bet * -0.5
     )
+    player.stats.update_variance(count=count, value=placed_bet * -0.5)
 
 
 def _update_betting_stats(player: Player, hand_bet: float | int, count: float | int | None) -> None:
@@ -144,6 +148,7 @@ def _update_win_stats(player: Player, hand_bet: float | int, count: float | int 
         category=StatsCategory.NET_WINNINGS,
         value=hand_bet
     )
+    player.stats.update_variance(count=count, value=hand_bet)
 
 
 def _update_loss_stats(player: Player, hand_bet: float | int, count: float | int | None) -> None:
@@ -153,11 +158,13 @@ def _update_loss_stats(player: Player, hand_bet: float | int, count: float | int
         category=StatsCategory.NET_WINNINGS,
         value=hand_bet * -1
     )
+    player.stats.update_variance(count=count, value=hand_bet * -1)
 
 
 def _update_push_stats(player: Player, hand_bet: float | int, count: float | int | None) -> None:
     player.adjust_bankroll(amount=hand_bet)
     player.stats.add_hand(count=count, category=StatsCategory.PLAYER_HANDS_PUSHED)
+    player.stats.update_variance(count=count, value=0)
 
 
 def place_bet(player: Player, amount: float | int, count: float | int | None) -> None:
