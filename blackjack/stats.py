@@ -45,6 +45,8 @@ class Stats:
 
         result[StatsCategory.TOTAL_AMOUNT_BET.value] = self._get_total(totals, StatsCategory.AMOUNT_BET, StatsCategory.INSURANCE_AMOUNT_BET)
         result[StatsCategory.TOTAL_NET_WINNINGS.value] = self._get_total(totals, StatsCategory.NET_WINNINGS, StatsCategory.INSURANCE_NET_WINNINGS)
+        result[StatsCategory.WIN_RATE.value] = round(result[StatsCategory.TOTAL_NET_WINNINGS.value] / result[StatsCategory.TOTAL_AMOUNT_BET.value], 4)
+
 
         if string:
             monetary_stats_values = {stat.value for stat in monetary_stats}
