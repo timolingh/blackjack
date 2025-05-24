@@ -121,7 +121,8 @@ blackjack.simulate(
     shoe_size=8,
     seed=1,
     reset_bankroll=False,
-    progress_bar=True
+    progress_bar=True,
+    _logfile=Path("./log.json")  # Set to None for to disable hand logging.
 )
 ```
 

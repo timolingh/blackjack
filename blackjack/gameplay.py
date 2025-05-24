@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from collections import defaultdict
 from blackjack.back_counter import BackCounter
 from blackjack.card_counter import CardCounter
@@ -11,6 +13,38 @@ from blackjack.shoe import Shoe
 from blackjack.stats import StatsCategory
 from blackjack.table import Table
 
+# def log_blackjack_round(blackjack_log_csv, players, dealer, dealer_hand_is_blackjack, insurance_count_dict, placed_bet_dict, begining_bankroll_dict):
+#     with open(blackjack_log_csv, mode='a', newline='') as file:
+#         writer = csv.writer(file)
+#         for player in players:
+#             writer.writerow([
+#                 player.name,
+#                 dealer.hand.cards,
+#                 dealer_hand_is_blackjack,
+#                 insurance_count_dict.get(player, None),
+#                 [hand.cards for hand in player.hands],
+#                 placed_bet_dict.get(player, None),
+#                 begining_bankroll_dict[player],
+#                 player.bankroll
+#             ])
+
+
+def log_blackjack_round(blackjack_log_json, players, dealer, dealer_hand_is_blackjack, insurance_count_dict, placed_bet_dict, begining_bankroll_dict):
+    logs = []
+    for player in players:
+        logs.append({
+            "player": player.name,
+            "dealer_hand": dealer.hand.cards,
+            "dealer_blackjack": dealer_hand_is_blackjack,
+            "insurance_count": insurance_count_dict.get(player, None),
+            "player_hands": [hand.cards for hand in player.hands],
+            "bet": placed_bet_dict.get(player, None),
+            "bankroll_start": begining_bankroll_dict[player],
+            "bankroll_end": player.bankroll
+        })
+    with open(blackjack_log_json, "a") as f:
+        for entry in logs:
+            f.write(json.dumps(entry) + "\n")
 
 def get_count(table: Table, shoe: Shoe) -> dict[CardCounter, float | int]:
     """
@@ -331,7 +365,8 @@ def play_round(
     dealer: Dealer,
     rules: Rules,
     shoe: Shoe,
-    playing_strategy: PlayingStrategy
+    playing_strategy: PlayingStrategy,
+    _logfile: Path = None
 ) -> None:
     """Plays a round of blackjack between a dealer and players at a table."""
     player_stats_dict = {}
@@ -365,7 +400,12 @@ def play_round(
         placed_bet_dict[player] = placed_bet
 
     players = table.players
+    begining_bankroll_dict = {}
     if players:
+        if _logfile:
+            for player in players:
+                begining_bankroll_dict[player] = player.bankroll
+
         initialize_hands(dealer=dealer, players=players, shoe=shoe)
         dealer_hand_is_blackjack = dealer.hand.is_blackjack
         dealer_up_card = dealer.up_card
@@ -401,5 +441,16 @@ def play_round(
                 )
         elif dealer_hand_is_blackjack or rules.dealer_shows_hole_card:
             shoe.add_to_seen_cards(card=dealer.hole_card)
+
+        if _logfile:
+            log_blackjack_round(
+                blackjack_log_json=_logfile,
+                players=players,
+                dealer=dealer,
+                dealer_hand_is_blackjack=dealer_hand_is_blackjack,
+                insurance_count_dict=insurance_count_dict,
+                placed_bet_dict=placed_bet_dict,
+                begining_bankroll_dict=begining_bankroll_dict
+            )
 
         clear_hands(dealer=dealer, players=players)
