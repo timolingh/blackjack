@@ -109,17 +109,12 @@ def player_initial_decision(
 
     """
 
-    __initial_bankroll = player.bankroll
-
     first_hand = player.get_first_hand()
 
     # place bet
     first_hand.add_to_total_bet(amount=placed_bet)
     player.adjust_bankroll(amount=-placed_bet)
     player_stats[(count, StatsCategory.AMOUNT_BET)] += placed_bet
-
-    __bankroll_after_placed_bet = player.bankroll
-
     total_bet = first_hand.total_bet
     half_bet = total_bet * 0.5
     player_hand_is_blackjack = first_hand.is_blackjack
@@ -137,9 +132,6 @@ def player_initial_decision(
         # place insurance bet
         player_stats[(insurance_count, StatsCategory.INSURANCE_AMOUNT_BET)] += half_bet
         player.adjust_bankroll(amount=-half_bet)
-
-        __bankroll_after_insurance_bet = player.bankroll
-
         if dealer_hand_is_blackjack:
             insurance_winnings = 2.0 * half_bet
             player.adjust_bankroll(amount=half_bet + insurance_winnings)
@@ -150,18 +142,11 @@ def player_initial_decision(
             # player_stats[(count, StatsCategory.NET_WINNINGS)] -= total_bet
             first_hand.status = HandStatus.SETTLED
 
-            __bankroll_after_dealer_bj = player.bankroll
-
             ## Player pushes hand (but wins insurance bet)
             if player_hand_is_blackjack:
                 player_stats[(count, StatsCategory.PLAYER_BLACKJACKS)] += 1
                 player_stats[(count, StatsCategory.PLAYER_HANDS_PUSHED)] += 1
                 player.adjust_bankroll(amount=total_bet)
-
-                __bankroll_after_player_bj = player.bankroll
-
-                print(f"{__initial_bankroll}, {__bankroll_after_placed_bet}, {__bankroll_after_insurance_bet}, {__bankroll_after_dealer_bj}, {__bankroll_after_player_bj},")
-
                 return None
 
             player_stats[(count, StatsCategory.PLAYER_HANDS_LOST)] += 1
