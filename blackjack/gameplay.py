@@ -108,13 +108,13 @@ def player_initial_decision(
     to them by the dealer.
 
     """
+
     first_hand = player.get_first_hand()
 
     # place bet
     first_hand.add_to_total_bet(amount=placed_bet)
     player.adjust_bankroll(amount=-placed_bet)
     player_stats[(count, StatsCategory.AMOUNT_BET)] += placed_bet
-
     total_bet = first_hand.total_bet
     half_bet = total_bet * 0.5
     player_hand_is_blackjack = first_hand.is_blackjack
@@ -122,7 +122,7 @@ def player_initial_decision(
     if (
         rules.insurance
         and dealer_up_card == 'A'
-        and not player_hand_is_blackjack
+        # and not player_hand_is_blackjack
         and isinstance(player, CardCounter)
         and player.insurance is not None
         and insurance_count is not None
@@ -131,19 +131,37 @@ def player_initial_decision(
     ):
         # place insurance bet
         player_stats[(insurance_count, StatsCategory.INSURANCE_AMOUNT_BET)] += half_bet
-
+        player.adjust_bankroll(amount=-half_bet)
         if dealer_hand_is_blackjack:
-            player.adjust_bankroll(amount=2.0 * half_bet)
+            insurance_winnings = 2.0 * half_bet
+            player.adjust_bankroll(amount=half_bet + insurance_winnings)
             player_stats[(insurance_count, StatsCategory.INSURANCE_NET_WINNINGS)] += (2.0 * half_bet)
             player_stats[(count, StatsCategory.TOTAL_HANDS_PLAYED)] += 1
-            player_stats[(count, StatsCategory.PLAYER_HANDS_LOST)] += 1
+            # player_stats[(count, StatsCategory.PLAYER_HANDS_LOST)] += 1
             player_stats[(count, StatsCategory.DEALER_BLACKJACKS)] += 1
-            player_stats[(count, StatsCategory.NET_WINNINGS)] -= total_bet
+            # player_stats[(count, StatsCategory.NET_WINNINGS)] -= total_bet
             first_hand.status = HandStatus.SETTLED
-            return None
 
-        player.adjust_bankroll(amount=-half_bet)
+            ## Player pushes hand (but wins insurance bet)
+            if player_hand_is_blackjack:
+                player_stats[(count, StatsCategory.PLAYER_BLACKJACKS)] += 1
+                player_stats[(count, StatsCategory.PLAYER_HANDS_PUSHED)] += 1
+                player.adjust_bankroll(amount=total_bet)
+                return None
+
+            player_stats[(count, StatsCategory.PLAYER_HANDS_LOST)] += 1
+            return None
+        
+        ## Dealer does not have blackjack. Lose the insurance bet. Check player for blackjack
         player_stats[(insurance_count, StatsCategory.INSURANCE_NET_WINNINGS)] -= half_bet
+        if player_hand_is_blackjack:
+            player_stats[(count, StatsCategory.PLAYER_BLACKJACKS)] += 1
+            player_stats[(count, StatsCategory.PLAYER_HANDS_WON)] += 1
+            blackjack_winnings = total_bet * rules.blackjack_payout
+            player.adjust_bankroll(amount=total_bet + blackjack_winnings)
+            player_stats[(count, StatsCategory.NET_WINNINGS)] += blackjack_winnings
+            first_hand.status = HandStatus.SETTLED
+            return None       
 
     if player_hand_is_blackjack:
 
