@@ -29,13 +29,25 @@ from blackjack.table import Table
 #             ])
 
 
-def log_blackjack_round(blackjack_log_json, players, dealer, dealer_hand_is_blackjack, insurance_count_dict, placed_bet_dict, begining_bankroll_dict):
+def log_blackjack_round(
+        blackjack_log_json: Path,
+        shoe: Shoe, 
+        players: list[Player], 
+        dealer: Dealer, 
+        dealer_hand_is_blackjack: bool,
+        count_dict: dict, 
+        insurance_count_dict: dict, 
+        placed_bet_dict: dict, 
+        begining_bankroll_dict: dict
+):
     logs = []
     for player in players:
         logs.append({
+            "shoe_id": shoe.shoe_id,
             "player": player.name,
             "dealer_hand": dealer.hand.cards,
             "dealer_blackjack": dealer_hand_is_blackjack,
+            "count": count_dict.get(player, None),
             "insurance_count": insurance_count_dict.get(player, None),
             "player_hands": [hand.cards for hand in player.hands],
             "bet": placed_bet_dict.get(player, None),
@@ -463,9 +475,11 @@ def play_round(
         if _logfile:
             log_blackjack_round(
                 blackjack_log_json=_logfile,
+                shoe=shoe,
                 players=players,
                 dealer=dealer,
                 dealer_hand_is_blackjack=dealer_hand_is_blackjack,
+                count_dict=count_dict,
                 insurance_count_dict=insurance_count_dict,
                 placed_bet_dict=placed_bet_dict,
                 begining_bankroll_dict=begining_bankroll_dict
