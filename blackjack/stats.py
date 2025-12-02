@@ -1,29 +1,6 @@
 from collections import defaultdict
 from blackjack.enums import StatsCategory
 
-# class Variance:
-#     """
-#     """
-#     def __init__(self, bankroll):
-#         self.bankroll = bankroll
-#         self.count = 0
-#         self.earnings_mean = 0
-#         self.m2 = 0
-#         self.earnings_variance = float("nan")
-
-#     def update_aggregate(self, bankroll):
-#         self.count += 1
-#         earnings = bankroll - self.bankroll
-#         delta = earnings - self.earnings_mean
-#         updated_mean = self.earnings_mean + (delta / self.count)
-#         delta2 = earnings - updated_mean
-#         self.m2 += delta * delta2
-
-#         self.bankroll = bankroll
-#         self.earnings_mean = updated_mean
-#         if self.count >= 2:
-#             self.earnings_variance = self.m2 / self.count
-
 class Variance:
     """
     Track running mean and variance of earnings relative to an initial bankroll.
