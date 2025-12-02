@@ -1,7 +1,7 @@
 from typing import Any
 from blackjack.hand import Hand
 from blackjack.playing_strategy import PlayingStrategy
-from blackjack.stats import Stats
+from blackjack.stats import Stats, Variance
 
 
 class Player:
@@ -31,6 +31,7 @@ class Player:
         self._min_bet = min_bet
         self._hands = [Hand()]
         self._stats = Stats()
+        self._variance = Variance(bankroll)
 
     @property
     def name(self) -> str:
@@ -57,7 +58,14 @@ class Player:
     @property
     def stats(self) -> Stats:
         return self._stats
+    
+    @property
+    def variance(self) -> Variance:
+        return self._variance
 
+    def update_aggregate(self, bankroll: float | int) -> None:
+        self._variance.update_aggregate(bankroll)
+    
     def adjust_bankroll(self, amount: float | int) -> None:
         self._bankroll += amount
 

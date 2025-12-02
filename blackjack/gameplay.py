@@ -445,6 +445,10 @@ def play_round(
         elif dealer_hand_is_blackjack or rules.dealer_shows_hole_card:
             shoe.add_to_seen_cards(card=dealer.hole_card)
 
+        ## Update aggregate for Welford Algorithm
+        for player in players:
+            player.update_aggregate(player.bankroll)
+
         if _logfile:
             log_blackjack_round(
                 blackjack_log_json=_logfile,
