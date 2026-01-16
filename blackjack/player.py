@@ -32,6 +32,7 @@ class Player:
         self._hands = [Hand()]
         self._stats = Stats()
         self._variance = Variance(bankroll)
+        self._is_ruined = False
 
     @property
     def name(self) -> str:
@@ -62,6 +63,10 @@ class Player:
     @property
     def variance(self) -> Variance:
         return self._variance
+    
+    @property
+    def is_ruined(self) -> bool:
+        return self._is_ruined
 
     def update_aggregate(self, bankroll: float | int) -> None:
         self._variance.update_aggregate(bankroll)
@@ -88,3 +93,6 @@ class Player:
 
     def reset_bankroll(self) -> None:
         self._bankroll = self._initial_bankroll
+
+    def bankrupt_player(self) -> None:
+        self._is_ruined = True
