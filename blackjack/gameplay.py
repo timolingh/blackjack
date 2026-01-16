@@ -394,6 +394,7 @@ def play_round(
         else:
             placed_bet = player.placed_bet(count=count)
             if not player.has_sufficient_bankroll(amount=placed_bet):
+                player.bankrupt_player()
                 table.remove_player(player=player)
                 continue
 
