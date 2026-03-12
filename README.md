@@ -22,6 +22,18 @@ Run tests inside the container:
 docker run --rm blackjack-sim python -m pytest -q
 ```
 
+Using Docker Compose (build and run):
+
+```bash
+docker compose up --build
+```
+
+Run tests with compose:
+
+```bash
+docker compose run --rm app python -m pytest -q
+```
+
 ## Getting Started
 
 ### Setting up the Game

@@ -55,7 +55,7 @@ def _run_once(seed: int, number_of_shoes: int, penetration: float, shoe_size: in
     """
     # Diagnostic: show which process is running which seed.
     # Remove or comment out if noisy.
-    print(f"Seed {seed} running on PID {os.getpid()}")
+    # print(f"Seed {seed} running on PID {os.getpid()}")
 
     blackjack = _make_blackjack()
     player = _make_player()
@@ -88,7 +88,7 @@ def main():
     average winnings, and total hands played across runs.
     """
 
-    number_of_runs = 10    
+    number_of_runs = 20    
     number_of_shoes = 2000 
     penetration = 4.0 / 6.0
     shoe_size = 6
@@ -143,7 +143,7 @@ def main():
     avg_total_winnings = total_winnings_accum / number_of_runs
     risk_of_ruin = bankrupt_count / number_of_runs
     if winnings_samples:
-        p20, p80 = np.percentile(winnings_samples, [20, 80])
+        p05, p20, p80 = np.percentile(winnings_samples, [5, 20, 80])
     else:
         p20 = p80 = 0.0
 
@@ -154,6 +154,7 @@ def main():
     print(f"Bankroll goal count: {goal_count}")
     print(f"Ran out of shoes: {ran_out_count}")
     print(f"Average total winnings: {_fmt_money(avg_total_winnings)}")
+    print(f"5th percentile winnings: {_fmt_money(p05)}")
     print(f"20th percentile winnings: {_fmt_money(p20)}")
     print(f"80th percentile winnings: {_fmt_money(p80)}")
     print(f"Total hands played across runs: {total_hands_accum}")
