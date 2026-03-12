@@ -5,11 +5,21 @@ A fully customizable blackjack simulation tool.
 ![Blackjack](/images/blackjack.jpg?raw=true)
 
 ## Installation
+```
 
-Clone the repository and install locally via pip.
+### Docker
 
-```python
-pip install .
+Build an isolated image (runs simulator by default):
+
+```bash
+docker build -t blackjack-sim .
+docker run --rm blackjack-sim
+```
+
+Run tests inside the container:
+
+```bash
+docker run --rm blackjack-sim python -m pytest -q
 ```
 
 ## Getting Started

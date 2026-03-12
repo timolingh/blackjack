@@ -31,11 +31,11 @@ def _make_blackjack():
 def _make_player():
     return CardCounter(
         name='CC_1',
-        bankroll=10000,
+        bankroll=20000,
         min_bet=15,
         card_counting_system=CardCountingSystem.HI_LO,
         stop_on_goal=True,
-        bankroll_goal=20000,
+        bankroll_goal=40000,
         bet_ramp={
             0: 15,
             1: 30,
@@ -88,7 +88,7 @@ def main():
     average winnings, and total hands played across runs.
     """
 
-    number_of_runs = 1000    
+    number_of_runs = 10    
     number_of_shoes = 2000 
     penetration = 4.0 / 6.0
     shoe_size = 6
