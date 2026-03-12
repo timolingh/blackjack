@@ -1,6 +1,14 @@
 from math import ceil, floor
 from typing import Any
-from typing_extensions import override
+
+try:
+    from typing import override  # Python >=3.11
+except ImportError:  # pragma: no cover - fallback for older Python
+    try:
+        from typing_extensions import override  # type: ignore
+    except ImportError:  # last resort: no-op decorator
+        def override(func):
+            return func
 from blackjack.enums import CardCountingSystem
 from blackjack.player import Player
 
