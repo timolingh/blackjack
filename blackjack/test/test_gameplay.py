@@ -11,6 +11,7 @@ from blackjack.playing_strategy import PlayingStrategy
 from blackjack.shoe import Shoe
 from blackjack.rules import Rules
 from blackjack.table import Table
+from blackjack.dealer import Dealer
 
 
 def test_get_count(player, table, card_counter_unbalanced, back_counter):
@@ -197,6 +198,29 @@ def test_player_initial_decision_insurance_no_dealer_blackjack(card_counter_unba
     assert card_counter_unbalanced.stats.stats[(3, StatsCategory.NET_WINNINGS)] == 0
     assert card_counter_unbalanced.stats.stats[(4, StatsCategory.INSURANCE_AMOUNT_BET)] == 5
     assert card_counter_unbalanced.stats.stats[(4, StatsCategory.INSURANCE_NET_WINNINGS)] == -5
+
+
+def test_play_round_removes_player_on_goal(table):
+    """Players with stop_on_goal leave table after reaching bankroll goal."""
+    player = Player(name='Goalie', bankroll=1100, min_bet=10, bankroll_goal=1100, stop_on_goal=True)
+    table.add_player(player=player)
+    rules = table._rules
+    playing_strategy = PlayingStrategy(s17=rules.s17)
+    shoe = Shoe(shoe_size=1)
+    shoe.shuffle()
+    dealer = Dealer()
+
+    play_round(
+        table=table,
+        dealer=dealer,
+        rules=rules,
+        shoe=shoe,
+        playing_strategy=playing_strategy,
+        _logfile=None
+    )
+
+    assert player.bankroll_goal_reached
+    assert player not in table.players
 
 
 def test_player_initial_decision_no_insurance_dealer_blackjack(player, dealer):

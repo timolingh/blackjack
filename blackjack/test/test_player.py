@@ -201,3 +201,21 @@ def test_reset_bankroll(player):
     assert player.bankroll == 500
     player.reset_bankroll()
     assert player.bankroll == 1000
+
+
+def test_bankroll_goal_default_multiple():
+    """Player marks goal reached when bankroll crosses default 2x multiple."""
+    p = Player(name='Goalie', bankroll=1000, min_bet=10)
+    assert p.bankroll_goal == 2000
+    assert not p.bankroll_goal_reached
+    p.adjust_bankroll(amount=1000)
+    assert p.bankroll_goal_reached
+
+
+def test_bankroll_goal_explicit_amount():
+    """Explicit bankroll_goal overrides stop_multiple and triggers flag."""
+    p = Player(name='Goalie', bankroll=1000, min_bet=10, bankroll_goal=1500)
+    assert p.bankroll_goal == 1500
+    assert not p.bankroll_goal_reached
+    p.adjust_bankroll(amount=500)
+    assert p.bankroll_goal_reached

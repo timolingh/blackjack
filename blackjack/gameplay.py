@@ -447,8 +447,11 @@ def play_round(
             shoe.add_to_seen_cards(card=dealer.hole_card)
 
         ## Update aggregate for Welford Algorithm
+        players_to_remove = []
         for player in players:
             player.update_aggregate(player.bankroll)
+            if player.stop_on_goal and player.bankroll_goal_reached:
+                players_to_remove.append(player)
 
         if _logfile:
             log_blackjack_round(
@@ -462,5 +465,8 @@ def play_round(
                 placed_bet_dict=placed_bet_dict,
                 begining_bankroll_dict=begining_bankroll_dict
             )        
-        
+
+        for player in players_to_remove:
+            table.remove_player(player=player)
+
         clear_hands(dealer=dealer, players=players)

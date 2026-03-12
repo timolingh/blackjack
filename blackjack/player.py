@@ -10,7 +10,15 @@ class Player:
     table that bets a flat amount.
 
     """
-    def __init__(self, name: str, bankroll: float | int, min_bet: float | int):
+    def __init__(
+        self,
+        name: str,
+        bankroll: float | int,
+        min_bet: float | int,
+        stop_multiple: float = 2.0,
+        bankroll_goal: float | int | None = None,
+        stop_on_goal: bool = False
+    ):
         """
         Parameters
         ----------
@@ -20,6 +28,12 @@ class Player:
             Amount of money a player starts out with at a table
         min_bet
             Amount of money a player wagers when playing a hand
+        stop_multiple
+            Multiple of the initial bankroll that marks a goal/stop point (default 2x)
+        bankroll_goal
+            Explicit bankroll goal amount; overrides stop_multiple when provided
+        stop_on_goal
+            If True, player leaves table once bankroll goal is reached
 
         """
         if bankroll < min_bet:
@@ -29,6 +43,10 @@ class Player:
         self._bankroll = bankroll
         self._initial_bankroll = bankroll
         self._min_bet = min_bet
+        self._stop_multiple = bankroll_goal / self._initial_bankroll if bankroll_goal else stop_multiple
+        self._bankroll_goal = bankroll_goal if bankroll_goal is not None else self._initial_bankroll * stop_multiple
+        self._bankroll_goal_reached = self._bankroll >= self._bankroll_goal
+        self._stop_on_goal = stop_on_goal
         self._hands = [Hand()]
         self._stats = Stats()
         self._variance = Variance(bankroll)
@@ -41,6 +59,18 @@ class Player:
     @property
     def bankroll(self) -> float | int:
         return self._bankroll
+
+    @property
+    def bankroll_goal(self) -> float | int:
+        return self._bankroll_goal
+
+    @property
+    def bankroll_goal_reached(self) -> bool:
+        return self._bankroll_goal_reached
+
+    @property
+    def stop_on_goal(self) -> bool:
+        return self._stop_on_goal
 
     def placed_bet(self, **kwargs: Any) -> float | int:
         return self._min_bet
@@ -73,6 +103,8 @@ class Player:
     
     def adjust_bankroll(self, amount: float | int) -> None:
         self._bankroll += amount
+        if not self._bankroll_goal_reached and self._bankroll >= self._bankroll_goal:
+            self._bankroll_goal_reached = True
 
     def has_sufficient_bankroll(self, amount: float | int) -> bool:
         return amount <= self._bankroll
@@ -93,6 +125,7 @@ class Player:
 
     def reset_bankroll(self) -> None:
         self._bankroll = self._initial_bankroll
+        self._bankroll_goal_reached = self._bankroll >= self._bankroll_goal
 
     def bankrupt_player(self) -> None:
         self._is_ruined = True
