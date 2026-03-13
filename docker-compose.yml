@@ -5,3 +5,5 @@ services:
     image: blackjack-sim
     build: .
     command: python bankroll_simulator.py
+    volumes:
+      - ./:/app:ro
