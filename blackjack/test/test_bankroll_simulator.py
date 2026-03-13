@@ -1,4 +1,5 @@
 import bankroll_simulator as sim
+from blackjack.blackjack import Blackjack
 
 
 def test_run_once_uses_dummy_simulation(monkeypatch):
@@ -7,7 +8,7 @@ def test_run_once_uses_dummy_simulation(monkeypatch):
     def fake_simulate(self, **kwargs):
         return None
 
-    monkeypatch.setattr(sim.Blackjack, "simulate", fake_simulate)
+    monkeypatch.setattr(Blackjack, "simulate", fake_simulate)
 
     outcome, winnings, hands_played = sim._run_once(
         seed=1, number_of_shoes=1, penetration=0.5, shoe_size=1

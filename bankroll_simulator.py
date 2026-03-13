@@ -2,50 +2,19 @@ import concurrent.futures
 import multiprocessing as mp
 import os
 import numpy as np
-from blackjack.blackjack import Blackjack
-from blackjack.card_counter import CardCounter
-from blackjack.enums import CardCountingSystem
+
+try:
+    from simulation_template import SIMULATION_PARAMS, make_blackjack, make_player
+except ImportError as exc:
+    raise SystemExit(
+        "simulation_template.py is missing. Copy simulation_template.py.example to "
+        "simulation_template.py and adjust your settings."
+    ) from exc
 
 
 def _fmt_money(amount: float) -> str:
     """Format a numeric amount as USD-style string."""
     return f"${amount:,.2f}" if amount >= 0 else f"-${abs(amount):,.2f}"
-
-
-def _make_blackjack():
-    return Blackjack(
-        min_bet=15,
-        max_bet=2000,
-        s17=False,
-        blackjack_payout=1.5,
-        max_hands=4,
-        double_down=True,
-        double_after_split=True,
-        resplit_aces=False,
-        insurance=True,
-        late_surrender=False,
-        dealer_shows_hole_card=True
-    )
-
-
-def _make_player():
-    return CardCounter(
-        name='CC_1',
-        bankroll=20000,
-        min_bet=15,
-        card_counting_system=CardCountingSystem.HI_LO,
-        stop_on_goal=True,
-        bankroll_goal=40000,
-        bet_ramp={
-            0: 15,
-            1: 30,
-            2: 50,
-            3: 75,
-            4: 100,
-            5: 125  
-        },
-        insurance=3
-    )
 
 
 def _run_once(seed: int, number_of_shoes: int, penetration: float, shoe_size: int):
@@ -57,8 +26,8 @@ def _run_once(seed: int, number_of_shoes: int, penetration: float, shoe_size: in
     # Remove or comment out if noisy.
     # print(f"Seed {seed} running on PID {os.getpid()}")
 
-    blackjack = _make_blackjack()
-    player = _make_player()
+    blackjack = make_blackjack()
+    player = make_player()
     initial_bankroll = player.bankroll
     blackjack.add_player(player=player)
     blackjack.simulate(
@@ -87,11 +56,11 @@ def main():
     Run simulate multiple times and report counts of bankrupt/goal/ran-out,
     average winnings, and total hands played across runs.
     """
-
-    number_of_runs = 20    
-    number_of_shoes = 2000 
-    penetration = 4.0 / 6.0
-    shoe_size = 6
+    params = SIMULATION_PARAMS
+    number_of_runs = params["number_of_runs"]
+    number_of_shoes = params["number_of_shoes"]
+    penetration = params["penetration"]
+    shoe_size = params["shoe_size"]
 
     bankrupt_count = 0
     goal_count = 0
@@ -145,6 +114,7 @@ def main():
     if winnings_samples:
         p05, p20, p80 = np.percentile(winnings_samples, [5, 20, 80])
     else:
+        p05 = 0.0
         p20 = p80 = 0.0
 
     print("Simulation results")
