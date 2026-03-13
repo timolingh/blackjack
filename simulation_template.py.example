@@ -1,0 +1,68 @@
+"""Simulation configuration template.
+
+Edit the values in this file to match the table rules, betting strategy,
+and simulation settings you want to test. The simulator imports the
+objects and params directly from here, so changes take effect on the next
+run.
+"""
+
+from blackjack.blackjack import Blackjack
+from blackjack.card_counter import CardCounter
+from blackjack.enums import CardCountingSystem
+# from blackjack.player import Player  # Uncomment if you want a flat-betting player
+
+
+def make_blackjack() -> Blackjack:
+    """Factory for a Blackjack table configuration."""
+    return Blackjack(
+        min_bet=15,
+        max_bet=2000,
+        s17=False,
+        blackjack_payout=1.5,
+        max_hands=4,
+        double_down=True,
+        double_after_split=True,
+        resplit_aces=False,
+        insurance=True,
+        late_surrender=False,
+        dealer_shows_hole_card=True,
+    )
+
+
+def make_player() -> CardCounter:
+    """Factory for a player/betting strategy configuration."""
+    return CardCounter(
+        name="CC_1",
+        bankroll=20000,
+        min_bet=15,
+        card_counting_system=CardCountingSystem.HI_LO,
+        stop_on_goal=True,
+        bankroll_goal=40000,
+        bet_ramp={
+            0: 15,
+            1: 30,
+            2: 50,
+            3: 75,
+            4: 100,
+            5: 125,
+        },
+        insurance=3,
+    )
+    # Example: flat-betting player (uncomment return below and import Player above)
+    # return Player(
+    #     name="Player_1",
+    #     bankroll=20000,
+    #     min_bet=15,
+    #     stop_multiple=2.0,    # leave at 2x bankroll or set explicit bankroll_goal
+    #     bankroll_goal=None,   # e.g. 40000 to mirror CardCounter goal
+    #     stop_on_goal=False,
+    # )
+
+
+# Simulation parameters
+SIMULATION_PARAMS = {
+    "number_of_runs": 20,
+    "number_of_shoes": 2000,
+    "penetration": 4.0 / 6.0,
+    "shoe_size": 6,
+}

@@ -57,4 +57,10 @@ dmypy.json
 
 # Notebooks
 .ipynb_checkpoints
-*.ipynb 
+*.ipynb
+
+# Local ignore overrides (per-user, not tracked)
+.gitignore.local
+
+# User-specific simulation configuration (copy from simulation_template.py.example)
+simulation_template.py
