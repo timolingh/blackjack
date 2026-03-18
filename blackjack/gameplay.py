@@ -101,6 +101,7 @@ def player_initial_decision(
     playing_strategy: PlayingStrategy,
     running_count: float | int | None = None,
     true_count: float | int | None = None,
+    can_surrender: bool = True,
 ) -> str | None:
     """
     Determines a player's initial decision based on the first two cards dealt
@@ -183,6 +184,7 @@ def player_initial_decision(
         playing_strategy=playing_strategy,
         running_count=running_count,
         true_count=true_count,
+        can_surrender=can_surrender,
     )
 
     if rules.late_surrender and decision in {'Rh', 'Rp', 'Rs'}:
@@ -235,6 +237,7 @@ def player_plays_hands(
         playing_strategy=playing_strategy,
         running_count=running_count,
         true_count=true_count,
+        can_surrender=rules.late_surrender,
     )
 
     if decision is None:
@@ -318,6 +321,7 @@ def player_plays_hands(
                 playing_strategy=playing_strategy,
                 running_count=running_count,
                 true_count=true_count,
+                can_surrender=False,
             )
         elif another_hand > 0:
             another_hand -= 1

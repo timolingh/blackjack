@@ -164,9 +164,13 @@ def test_positive_rc_tc_zero_hard16v10(playing_strategy_deviations_h17):
 
 
 def test_negative_rc_tc_zero_hard16v10(playing_strategy_deviations_h17):
-    """RC < 0 with TC = 0: hard 16 vs 10 should hit (negative base overrides)."""
+    """Post-hit context RC < 0, TC = 0: hard 16 vs 10 should hit (surrender unavailable)."""
     decision = playing_strategy_deviations_h17.hard(
-        total=16, dealer_up_card='10', running_count=-1, true_count=0
+        total=16,
+        dealer_up_card='10',
+        running_count=-1,
+        true_count=0,
+        can_surrender=False,
     )
     assert decision == 'H'
 
@@ -185,4 +189,72 @@ def test_tc_minus_one_merges_both_bases(playing_strategy_deviations_h17):
         total=15, dealer_up_card='A', running_count=-1, true_count=-1
     )
     assert decision == 'Rh'
+
+
+def test_post_hit_positive_tc3_stand_16vA():
+    """Post-hit: TC >= 3 should stand 16 vs A (positive post-hit tier)."""
+    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    levels = {
+        "positive": DEVIATION_LEVELS,
+        "negative": NEGATIVE_DEVIATION_LEVELS,
+    }
+    ps = PlayingStrategy(
+        s17=False,
+        use_deviations=True,
+        deviations_levels=levels,
+        post_hit_deviations=POST_HIT_DEVIATION_LEVELS,
+    )
+    decision = ps.hard(total=16, dealer_up_card='A', running_count=1, true_count=3, can_surrender=False)
+    assert decision == 'S'
+
+
+def test_post_hit_positive_tc4_stand_16v9():
+    """Post-hit: TC >= 4 should stand 16 vs 9 (positive post-hit tier)."""
+    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    levels = {
+        "positive": DEVIATION_LEVELS,
+        "negative": NEGATIVE_DEVIATION_LEVELS,
+    }
+    ps = PlayingStrategy(
+        s17=False,
+        use_deviations=True,
+        deviations_levels=levels,
+        post_hit_deviations=POST_HIT_DEVIATION_LEVELS,
+    )
+    decision = ps.hard(total=16, dealer_up_card='9', running_count=1, true_count=4, can_surrender=False)
+    assert decision == 'S'
+
+
+def test_post_hit_positive_tc4_stand_15v10():
+    """Post-hit: TC >= 4 should stand 15 vs 10."""
+    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    levels = {
+        "positive": DEVIATION_LEVELS,
+        "negative": NEGATIVE_DEVIATION_LEVELS,
+    }
+    ps = PlayingStrategy(
+        s17=False,
+        use_deviations=True,
+        deviations_levels=levels,
+        post_hit_deviations=POST_HIT_DEVIATION_LEVELS,
+    )
+    decision = ps.hard(total=15, dealer_up_card='10', running_count=1, true_count=4, can_surrender=False)
+    assert decision == 'S'
+
+
+def test_post_hit_positive_tc5_stand_15vA():
+    """Post-hit: TC >= 5 should stand 15 vs A."""
+    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    levels = {
+        "positive": DEVIATION_LEVELS,
+        "negative": NEGATIVE_DEVIATION_LEVELS,
+    }
+    ps = PlayingStrategy(
+        s17=False,
+        use_deviations=True,
+        deviations_levels=levels,
+        post_hit_deviations=POST_HIT_DEVIATION_LEVELS,
+    )
+    decision = ps.hard(total=15, dealer_up_card='A', running_count=1, true_count=5, can_surrender=False)
+    assert decision == 'S'
 from blackjack.playing_strategy import PlayingStrategy

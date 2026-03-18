@@ -17,6 +17,7 @@ class PlayingStrategy:
         s17: bool,
         use_deviations: bool = False,
         deviations_levels: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None = None,
+        post_hit_deviations: dict[str, list[dict[str, Any]]] | None = None,
     ):
         """
         Parameters
@@ -42,9 +43,14 @@ class PlayingStrategy:
             pos_levels, neg_levels = self._load_deviation_levels(deviations_levels)
             self._deviation_levels_pos = pos_levels
             self._deviation_levels_neg = neg_levels
+            post_pos, post_neg = self._load_post_hit_levels(post_hit_deviations)
+            self._post_hit_levels_pos = post_pos
+            self._post_hit_levels_neg = post_neg
         else:
             self._deviation_levels_pos = []
             self._deviation_levels_neg = []
+            self._post_hit_levels_pos = []
+            self._post_hit_levels_neg = []
 
     def hard(
         self,
@@ -52,6 +58,7 @@ class PlayingStrategy:
         dealer_up_card: str,
         running_count: float | int | None = None,
         true_count: float | int | None = None,
+        can_surrender: bool = True,
     ) -> str:
         decision = self._deviation_override(
             hand_type="hard",
@@ -59,10 +66,11 @@ class PlayingStrategy:
             dealer_up_card=dealer_up_card,
             running_count=running_count,
             true_count=true_count,
+            can_surrender=can_surrender,
         )
         if decision is None:
             decision = self._hard_dict[total][dealer_up_card]
-        return self._resolve_decision(decision)
+        return self._resolve_decision(decision, can_surrender=can_surrender)
 
     def soft(
         self,
@@ -70,6 +78,7 @@ class PlayingStrategy:
         dealer_up_card: str,
         running_count: float | int | None = None,
         true_count: float | int | None = None,
+        can_surrender: bool = True,
     ) -> str:
         decision = self._deviation_override(
             hand_type="soft",
@@ -77,10 +86,11 @@ class PlayingStrategy:
             dealer_up_card=dealer_up_card,
             running_count=running_count,
             true_count=true_count,
+            can_surrender=can_surrender,
         )
         if decision is None:
             decision = self._soft_dict[total][dealer_up_card]
-        return self._resolve_decision(decision)
+        return self._resolve_decision(decision, can_surrender=can_surrender)
 
     def pair(
         self,
@@ -88,6 +98,7 @@ class PlayingStrategy:
         dealer_up_card: str,
         running_count: float | int | None = None,
         true_count: float | int | None = None,
+        can_surrender: bool = True,
     ) -> str:
         decision = self._deviation_override(
             hand_type="pair",
@@ -95,15 +106,18 @@ class PlayingStrategy:
             dealer_up_card=dealer_up_card,
             running_count=running_count,
             true_count=true_count,
+            can_surrender=can_surrender,
         )
         if decision is None:
             decision = self._pair_dict[card][dealer_up_card]
-        return self._resolve_decision(decision)
+        return self._resolve_decision(decision, can_surrender=can_surrender)
 
-    def _resolve_decision(self, decision: str | dict) -> str:
-        """Return the decision string, handling dict entries when present."""
+    def _resolve_decision(self, decision: str | dict, can_surrender: bool) -> str:
+        """Return the decision string, handling dict entries when present and surrender eligibility."""
         if isinstance(decision, dict):
             return self._handle_decision_dict(decision)
+        if not can_surrender and decision in {"Rh", "Rs", "Rp"}:
+            return {"Rh": "H", "Rs": "S", "Rp": "P"}[decision]
         return decision
 
     def _handle_decision_dict(self, decision_dict: dict) -> str:
@@ -117,19 +131,34 @@ class PlayingStrategy:
         dealer_up_card: str,
         running_count: float | int | None,
         true_count: float | int | None,
+        can_surrender: bool,
     ) -> str | None:
         if not self._use_deviations:
             return None
 
-        active = self._build_active_deviations(running_count=running_count, true_count=true_count)
+        active = self._build_active_deviations(
+            running_count=running_count,
+            true_count=true_count,
+            can_surrender=can_surrender,
+        )
         return active.get(hand_type, {}).get(player_key, {}).get(dealer_up_card)
 
     def _build_active_deviations(
         self,
         running_count: float | int | None,
         true_count: float | int | None,
+        can_surrender: bool,
     ) -> dict[str, dict]:
-        level_sets = self._select_levels(running_count=running_count, true_count=true_count)
+        pos_levels = self._deviation_levels_pos if can_surrender else self._post_hit_levels_pos
+        neg_levels = self._deviation_levels_neg if can_surrender else self._post_hit_levels_neg
+
+        level_sets = self._select_levels(
+            levels_pos=pos_levels,
+            levels_neg=neg_levels,
+            running_count=running_count,
+            true_count=true_count,
+            prefer_negative_only=not can_surrender,
+        )
         if not level_sets:
             return {}
 
@@ -166,30 +195,35 @@ class PlayingStrategy:
 
     def _select_levels(
         self,
+        levels_pos: list[dict[str, Any]],
+        levels_neg: list[dict[str, Any]],
         running_count: float | int | None,
         true_count: float | int | None,
+        prefer_negative_only: bool = False,
     ) -> list[tuple[list[dict[str, Any]], bool]]:
         # Returns list of (levels, use_negative flag) to merge
         if true_count is not None:
             if true_count < -1:
-                return [(self._deviation_levels_neg, True)]
+                return [(levels_neg, True)]
             # true_count == -1: merge both
             if true_count == -1:
                 return [
-                    (self._deviation_levels_pos, False),
-                    (self._deviation_levels_neg, True),
+                    (levels_pos, False),
+                    (levels_neg, True),
                 ]
             # true_count >= 0: use positive, but if running_count is negative, also merge negative base
             if running_count is not None and running_count < 0:
+                if prefer_negative_only:
+                    return [(levels_neg, True)]
                 return [
-                    (self._deviation_levels_pos, False),
-                    (self._deviation_levels_neg, True),
+                    (levels_pos, False),
+                    (levels_neg, True),
                 ]
-            return [(self._deviation_levels_pos, False)]
+            return [(levels_pos, False)]
 
         if running_count is not None and running_count < 0:
-            return [(self._deviation_levels_neg, True)]
-        return [(self._deviation_levels_pos, False)]
+            return [(levels_neg, True)]
+        return [(levels_pos, False)]
 
     def _load_deviation_levels(
         self,
@@ -212,3 +246,27 @@ class PlayingStrategy:
             NEGATIVE_DEVIATION_LEVELS = []
 
         return DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS
+
+    def _load_post_hit_levels(
+        self,
+        overrides: dict[str, list[dict[str, Any]]] | None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        if overrides is not None:
+            return overrides.get("positive", []), overrides.get("negative", [])
+
+        try:
+            from deviations import POST_HIT_DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            POST_HIT_DEVIATION_LEVELS = []
+        try:
+            from deviations import NEGATIVE_POST_HIT_DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            NEGATIVE_POST_HIT_DEVIATION_LEVELS = []
+
+        if isinstance(POST_HIT_DEVIATION_LEVELS, dict):
+            pos = POST_HIT_DEVIATION_LEVELS.get("positive", [])
+            neg = POST_HIT_DEVIATION_LEVELS.get("negative", [])
+        else:
+            pos = POST_HIT_DEVIATION_LEVELS
+            neg = NEGATIVE_POST_HIT_DEVIATION_LEVELS
+        return pos, neg
