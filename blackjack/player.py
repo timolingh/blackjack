@@ -113,12 +113,35 @@ class Player:
         return hand.number_of_cards == 2 and (hand.cards[0] == hand.cards[1]) and \
             len(self._hands) < max_hands and self.has_sufficient_bankroll(amount=hand.total_bet)
 
-    def decision(self, playing_strategy: PlayingStrategy, hand: Hand, dealer_up_card: str, max_hands: int) -> str:
+    def decision(
+        self,
+        playing_strategy: PlayingStrategy,
+        hand: Hand,
+        dealer_up_card: str,
+        max_hands: int,
+        running_count: float | int | None = None,
+        true_count: float | int | None = None,
+    ) -> str:
         if self._is_split_allowed(hand=hand, max_hands=max_hands):
-            return playing_strategy.pair(card=hand.cards[0], dealer_up_card=dealer_up_card)
+            return playing_strategy.pair(
+                card=hand.cards[0],
+                dealer_up_card=dealer_up_card,
+                running_count=running_count,
+                true_count=true_count,
+            )
         if hand.is_soft:
-            return playing_strategy.soft(total=hand.total, dealer_up_card=dealer_up_card)
-        return playing_strategy.hard(total=hand.total, dealer_up_card=dealer_up_card)
+            return playing_strategy.soft(
+                total=hand.total,
+                dealer_up_card=dealer_up_card,
+                running_count=running_count,
+                true_count=true_count,
+            )
+        return playing_strategy.hard(
+            total=hand.total,
+            dealer_up_card=dealer_up_card,
+            running_count=running_count,
+            true_count=true_count,
+        )
 
     def reset_hands(self) -> None:
         self._hands = [Hand()]
