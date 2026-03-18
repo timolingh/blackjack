@@ -2,7 +2,7 @@ from pathlib import Path
 import random
 import sys
 import time
-from typing import Generator
+from typing import Any, Generator
 from blackjack.dealer import Dealer
 from blackjack.gameplay import play_round
 from blackjack.player import Player
@@ -50,7 +50,9 @@ class Blackjack:
         resplit_aces: bool = False,
         insurance: bool = True,
         late_surrender: bool = True,
-        dealer_shows_hole_card: bool = False
+        dealer_shows_hole_card: bool = False,
+        use_deviations: bool = False,
+        deviations_levels: list[dict[str, Any]] | None = None
     ):
         """
         Parameters
@@ -94,7 +96,11 @@ class Blackjack:
             dealer_shows_hole_card=dealer_shows_hole_card
         )
         self._table = Table(rules=self._rules)
-        self._playing_strategy = PlayingStrategy(s17=s17)
+        self._playing_strategy = PlayingStrategy(
+            s17=s17,
+            use_deviations=use_deviations,
+            deviations_levels=deviations_levels,
+        )
         self._dealer = Dealer()
 
     def add_player(self, player: Player) -> None:

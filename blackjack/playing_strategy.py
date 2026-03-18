@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 from blackjack.source.basic_strategy import H17_HARD_DICT, H17_SOFT_DICT, H17_PAIR_DICT
@@ -15,7 +16,7 @@ class PlayingStrategy:
         self,
         s17: bool,
         use_deviations: bool = False,
-        deviations_levels: list[dict[str, Any]] | None = None,
+        deviations_levels: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None = None,
     ):
         """
         Parameters
@@ -37,7 +38,13 @@ class PlayingStrategy:
             self._pair_dict = H17_PAIR_DICT
 
         self._use_deviations = use_deviations
-        self._deviation_levels = self._load_deviation_levels(deviations_levels) if use_deviations else []
+        if use_deviations:
+            pos_levels, neg_levels = self._load_deviation_levels(deviations_levels)
+            self._deviation_levels_pos = pos_levels
+            self._deviation_levels_neg = neg_levels
+        else:
+            self._deviation_levels_pos = []
+            self._deviation_levels_neg = []
 
     def hard(
         self,
@@ -122,17 +129,30 @@ class PlayingStrategy:
         running_count: float | int | None,
         true_count: float | int | None,
     ) -> dict[str, dict]:
-        if not self._deviation_levels:
+        level_sets = self._select_levels(running_count=running_count, true_count=true_count)
+        if not level_sets:
             return {}
 
         levels_to_merge: list[dict[str, Any]] = []
-        if running_count is not None and running_count > 0 and len(self._deviation_levels) >= 1:
-            levels_to_merge.append(self._deviation_levels[0])
+        tc_floor = math.floor(true_count) if true_count is not None else None
 
-        if true_count is not None and len(self._deviation_levels) > 1:
-            tc_floor = int(true_count)
-            for idx in range(1, min(tc_floor, len(self._deviation_levels) - 1) + 1):
-                levels_to_merge.append(self._deviation_levels[idx])
+        for levels, use_negative in level_sets:
+            if not levels:
+                continue
+            # always include the base tier of this side
+            levels_to_merge.append(levels[0])
+
+            if tc_floor is None or len(levels) <= 1:
+                continue
+
+            if use_negative and tc_floor <= -1:
+                max_idx = min(abs(tc_floor), len(levels) - 1)
+                for idx in range(1, max_idx + 1):
+                    levels_to_merge.append(levels[idx])
+            elif (not use_negative) and tc_floor >= 1:
+                max_idx = min(tc_floor, len(levels) - 1)
+                for idx in range(1, max_idx + 1):
+                    levels_to_merge.append(levels[idx])
 
         merged: dict[str, dict] = {}
         for level in levels_to_merge:
@@ -144,11 +164,51 @@ class PlayingStrategy:
 
         return merged
 
-    def _load_deviation_levels(self, overrides: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
+    def _select_levels(
+        self,
+        running_count: float | int | None,
+        true_count: float | int | None,
+    ) -> list[tuple[list[dict[str, Any]], bool]]:
+        # Returns list of (levels, use_negative flag) to merge
+        if true_count is not None:
+            if true_count < -1:
+                return [(self._deviation_levels_neg, True)]
+            # true_count == -1: merge both
+            if true_count == -1:
+                return [
+                    (self._deviation_levels_pos, False),
+                    (self._deviation_levels_neg, True),
+                ]
+            # true_count >= 0: use positive, but if running_count is negative, also merge negative base
+            if running_count is not None and running_count < 0:
+                return [
+                    (self._deviation_levels_pos, False),
+                    (self._deviation_levels_neg, True),
+                ]
+            return [(self._deviation_levels_pos, False)]
+
+        if running_count is not None and running_count < 0:
+            return [(self._deviation_levels_neg, True)]
+        return [(self._deviation_levels_pos, False)]
+
+    def _load_deviation_levels(
+        self,
+        overrides: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         if overrides is not None:
-            return overrides
+            if isinstance(overrides, dict):
+                pos = overrides.get("positive", [])
+                neg = overrides.get("negative", [])
+                return pos, neg
+            return overrides, []
+
         try:
             from deviations import DEVIATION_LEVELS  # type: ignore
         except Exception:
-            return []
-        return DEVIATION_LEVELS
+            DEVIATION_LEVELS = []
+        try:
+            from deviations import NEGATIVE_DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            NEGATIVE_DEVIATION_LEVELS = []
+
+        return DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS

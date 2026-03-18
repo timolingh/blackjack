@@ -137,6 +137,12 @@ def playing_strategy_h17():
 def playing_strategy_s17():
     return PlayingStrategy(s17=True)
 
+@pytest.fixture
+def playing_strategy_deviations_h17():
+    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS
+    levels = {"positive": DEVIATION_LEVELS, "negative": NEGATIVE_DEVIATION_LEVELS}
+    return PlayingStrategy(s17=False, use_deviations=True, deviations_levels=levels)
+
 
 @pytest.fixture
 def stats():

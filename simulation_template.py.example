@@ -26,6 +26,7 @@ def make_blackjack() -> Blackjack:
         insurance=True,
         late_surrender=False,
         dealer_shows_hole_card=True,
+        use_deviations=False,
     )
 
 
