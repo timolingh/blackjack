@@ -64,6 +64,7 @@ DEVIATION_LEVELS: list[dict[str, dict]] = [
     {
         "hard": {
             10: {"10": "Dh"},  # Double 10 v 10 at TC >= 4   
+            16: {"8": "Rh"},   # Surrender 16 v 8 at TC >= 4
         },
         "soft": {},
         "pair": {

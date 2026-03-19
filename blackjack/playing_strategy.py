@@ -60,7 +60,8 @@ class PlayingStrategy:
         true_count: float | int | None = None,
         can_surrender: bool = True,
     ) -> str:
-        decision = self._deviation_override(
+        base_decision = self._hard_dict[total][dealer_up_card]
+        override = self._deviation_override(
             hand_type="hard",
             player_key=total,
             dealer_up_card=dealer_up_card,
@@ -68,8 +69,13 @@ class PlayingStrategy:
             true_count=true_count,
             can_surrender=can_surrender,
         )
+        decision = self._respect_surrender_priority(
+            base_decision=base_decision,
+            override=override,
+            can_surrender=can_surrender,
+        )
         if decision is None:
-            decision = self._hard_dict[total][dealer_up_card]
+            decision = base_decision
         return self._resolve_decision(decision, can_surrender=can_surrender)
 
     def soft(
@@ -80,7 +86,8 @@ class PlayingStrategy:
         true_count: float | int | None = None,
         can_surrender: bool = True,
     ) -> str:
-        decision = self._deviation_override(
+        base_decision = self._soft_dict[total][dealer_up_card]
+        override = self._deviation_override(
             hand_type="soft",
             player_key=total,
             dealer_up_card=dealer_up_card,
@@ -88,8 +95,13 @@ class PlayingStrategy:
             true_count=true_count,
             can_surrender=can_surrender,
         )
+        decision = self._respect_surrender_priority(
+            base_decision=base_decision,
+            override=override,
+            can_surrender=can_surrender,
+        )
         if decision is None:
-            decision = self._soft_dict[total][dealer_up_card]
+            decision = base_decision
         return self._resolve_decision(decision, can_surrender=can_surrender)
 
     def pair(
@@ -100,7 +112,8 @@ class PlayingStrategy:
         true_count: float | int | None = None,
         can_surrender: bool = True,
     ) -> str:
-        decision = self._deviation_override(
+        base_decision = self._pair_dict[card][dealer_up_card]
+        override = self._deviation_override(
             hand_type="pair",
             player_key=card,
             dealer_up_card=dealer_up_card,
@@ -108,8 +121,13 @@ class PlayingStrategy:
             true_count=true_count,
             can_surrender=can_surrender,
         )
+        decision = self._respect_surrender_priority(
+            base_decision=base_decision,
+            override=override,
+            can_surrender=can_surrender,
+        )
         if decision is None:
-            decision = self._pair_dict[card][dealer_up_card]
+            decision = base_decision
         return self._resolve_decision(decision, can_surrender=can_surrender)
 
     def _resolve_decision(self, decision: str | dict, can_surrender: bool) -> str:
@@ -123,6 +141,24 @@ class PlayingStrategy:
     def _handle_decision_dict(self, decision_dict: dict) -> str:
         """Placeholder for future dict-based decision handling."""
         raise NotImplementedError("Dict-based player decisions are not implemented yet.")
+
+    def _respect_surrender_priority(
+        self,
+        base_decision: str,
+        override: str | None,
+        can_surrender: bool,
+    ) -> str | None:
+        """
+        Preserve a surrender recommendation when available unless the override is also a surrender.
+        This keeps pre-hit surrender decisions from being replaced by count-based deviations.
+        """
+        if override is None:
+            return None
+
+        if can_surrender and base_decision.startswith("R") and not override.startswith("R"):
+            return base_decision
+
+        return override
 
     def _deviation_override(
         self,
