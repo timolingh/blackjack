@@ -38,19 +38,20 @@ class PlayingStrategy:
             self._soft_dict = H17_SOFT_DICT
             self._pair_dict = H17_PAIR_DICT
 
-        self._use_deviations = use_deviations
-        if use_deviations:
-            pos_levels, neg_levels = self._load_deviation_levels(deviations_levels)
-            self._deviation_levels_pos = pos_levels
-            self._deviation_levels_neg = neg_levels
-            post_pos, post_neg = self._load_post_hit_levels(post_hit_deviations)
-            self._post_hit_levels_pos = post_pos
-            self._post_hit_levels_neg = post_neg
-        else:
-            self._deviation_levels_pos = []
-            self._deviation_levels_neg = []
-            self._post_hit_levels_pos = []
-            self._post_hit_levels_neg = []
+        # load deviation tables up front so they can be toggled per-decision
+        self._default_use_deviations = use_deviations
+        pos_levels, neg_levels = self._load_deviation_levels(deviations_levels)
+        self._deviation_levels_pos = pos_levels
+        self._deviation_levels_neg = neg_levels
+        post_pos, post_neg = self._load_post_hit_levels(post_hit_deviations)
+        self._post_hit_levels_pos = post_pos
+        self._post_hit_levels_neg = post_neg
+
+    def _use_deviations_enabled(self, override: bool | None) -> bool:
+        """Return whether deviations should be applied for this decision."""
+        if override is not None:
+            return override
+        return self._default_use_deviations
 
     def hard(
         self,
@@ -59,6 +60,7 @@ class PlayingStrategy:
         running_count: float | int | None = None,
         true_count: float | int | None = None,
         can_surrender: bool = True,
+        use_deviations: bool | None = None,
     ) -> str:
         base_decision = self._hard_dict[total][dealer_up_card]
         override = self._deviation_override(
@@ -68,6 +70,7 @@ class PlayingStrategy:
             running_count=running_count,
             true_count=true_count,
             can_surrender=can_surrender,
+            use_deviations=use_deviations,
         )
         decision = self._respect_surrender_priority(
             base_decision=base_decision,
@@ -87,6 +90,7 @@ class PlayingStrategy:
         running_count: float | int | None = None,
         true_count: float | int | None = None,
         can_surrender: bool = True,
+        use_deviations: bool | None = None,
     ) -> str:
         base_decision = self._soft_dict[total][dealer_up_card]
         override = self._deviation_override(
@@ -96,6 +100,7 @@ class PlayingStrategy:
             running_count=running_count,
             true_count=true_count,
             can_surrender=can_surrender,
+            use_deviations=use_deviations,
         )
         decision = self._respect_surrender_priority(
             base_decision=base_decision,
@@ -115,6 +120,7 @@ class PlayingStrategy:
         running_count: float | int | None = None,
         true_count: float | int | None = None,
         can_surrender: bool = True,
+        use_deviations: bool | None = None,
     ) -> str:
         base_decision = self._pair_dict[card][dealer_up_card]
         override = self._deviation_override(
@@ -124,6 +130,7 @@ class PlayingStrategy:
             running_count=running_count,
             true_count=true_count,
             can_surrender=can_surrender,
+            use_deviations=use_deviations,
         )
         decision = self._respect_surrender_priority(
             base_decision=base_decision,
@@ -184,8 +191,9 @@ class PlayingStrategy:
         running_count: float | int | None,
         true_count: float | int | None,
         can_surrender: bool,
+        use_deviations: bool | None,
     ) -> str | None:
-        if not self._use_deviations:
+        if not self._use_deviations_enabled(use_deviations):
             return None
 
         active = self._build_active_deviations(

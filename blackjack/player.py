@@ -122,6 +122,7 @@ class Player:
         running_count: float | int | None = None,
         true_count: float | int | None = None,
         can_surrender: bool = True,
+        use_deviations: bool | None = None,
     ) -> str:
         if self._is_split_allowed(hand=hand, max_hands=max_hands):
             return playing_strategy.pair(
@@ -130,6 +131,7 @@ class Player:
                 running_count=running_count,
                 true_count=true_count,
                 can_surrender=can_surrender,
+                use_deviations=use_deviations,
             )
         if hand.is_soft:
             return playing_strategy.soft(
@@ -138,6 +140,7 @@ class Player:
                 running_count=running_count,
                 true_count=true_count,
                 can_surrender=can_surrender,
+                use_deviations=use_deviations,
             )
         return playing_strategy.hard(
             total=hand.total,
@@ -145,6 +148,7 @@ class Player:
             running_count=running_count,
             true_count=true_count,
             can_surrender=can_surrender,
+            use_deviations=use_deviations,
         )
 
     def reset_hands(self) -> None:

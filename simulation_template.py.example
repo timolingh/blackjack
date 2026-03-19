@@ -26,7 +26,6 @@ def make_blackjack() -> Blackjack:
         insurance=True,
         late_surrender=False,
         dealer_shows_hole_card=True,
-        use_deviations=False,
     )
 
 
@@ -48,6 +47,7 @@ def make_player() -> CardCounter:
             5: 125,
         },
         insurance=3,
+        use_deviations=False,
     )
     # Example: flat-betting player (uncomment return below and import Player above)
     # return Player(

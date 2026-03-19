@@ -51,7 +51,6 @@ class Blackjack:
         insurance: bool = True,
         late_surrender: bool = True,
         dealer_shows_hole_card: bool = False,
-        use_deviations: bool = False,
         deviations_levels: list[dict[str, Any]] | None = None
     ):
         """
@@ -80,7 +79,6 @@ class Blackjack:
         dealer_shows_hole_card
             True if the dealer shows his hole card regardless of whether or
             not all players bust, False otherwise
-
         """
         self._rules = Rules(
             min_bet=min_bet,
@@ -98,7 +96,6 @@ class Blackjack:
         self._table = Table(rules=self._rules)
         self._playing_strategy = PlayingStrategy(
             s17=s17,
-            use_deviations=use_deviations,
             deviations_levels=deviations_levels,
         )
         self._dealer = Dealer()

@@ -24,6 +24,7 @@ class CardCounter(Player):
         card_counting_system: CardCountingSystem,
         bet_ramp: dict[float | int, float | int],
         insurance: float | int | None = None,
+        use_deviations: bool = False,
         **kwargs: Any
     ):
         """
@@ -40,6 +41,8 @@ class CardCounter(Player):
         insurance
             Minimum running or true count at which a player will
             purchase insurance, if desired, and if available
+        use_deviations
+            Whether this counter applies count-based deviations when acting
 
         """
         super().__init__(**kwargs)
@@ -66,6 +69,7 @@ class CardCounter(Player):
         self._bet_ramp = bet_ramp
         self._card_counting_system = card_counting_system
         self._insurance = insurance
+        self._use_deviations = use_deviations
 
     @property
     def card_counting_system(self) -> CardCountingSystem:
@@ -87,3 +91,32 @@ class CardCounter(Player):
     @property
     def insurance(self) -> float | int | None:
         return self._insurance
+
+    @property
+    def use_deviations(self) -> bool:
+        return self._use_deviations
+
+    @override
+    def decision(
+        self,
+        playing_strategy,
+        hand,
+        dealer_up_card,
+        max_hands,
+        running_count=None,
+        true_count=None,
+        can_surrender: bool = True,
+        use_deviations: bool | None = None,
+    ):
+        # always prefer the player's configured setting unless an explicit override is given
+        effective_use_deviations = self._use_deviations if use_deviations is None else use_deviations
+        return super().decision(
+            playing_strategy=playing_strategy,
+            hand=hand,
+            dealer_up_card=dealer_up_card,
+            max_hands=max_hands,
+            running_count=running_count,
+            true_count=true_count,
+            can_surrender=can_surrender,
+            use_deviations=effective_use_deviations,
+        )
