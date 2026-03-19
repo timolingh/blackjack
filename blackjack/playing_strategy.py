@@ -289,11 +289,11 @@ class PlayingStrategy:
             return overrides, []
 
         try:
-            from deviations import DEVIATION_LEVELS  # type: ignore
+            from blackjack.deviations import DEVIATION_LEVELS  # type: ignore
         except Exception:
             DEVIATION_LEVELS = []
         try:
-            from deviations import NEGATIVE_DEVIATION_LEVELS  # type: ignore
+            from blackjack.deviations import NEGATIVE_DEVIATION_LEVELS  # type: ignore
         except Exception:
             NEGATIVE_DEVIATION_LEVELS = []
 
@@ -307,11 +307,11 @@ class PlayingStrategy:
             return overrides.get("positive", []), overrides.get("negative", [])
 
         try:
-            from deviations import POST_HIT_DEVIATION_LEVELS  # type: ignore
+            from blackjack.deviations import POST_HIT_DEVIATION_LEVELS  # type: ignore
         except Exception:
             POST_HIT_DEVIATION_LEVELS = []
         try:
-            from deviations import NEGATIVE_POST_HIT_DEVIATION_LEVELS  # type: ignore
+            from blackjack.deviations import NEGATIVE_POST_HIT_DEVIATION_LEVELS  # type: ignore
         except Exception:
             NEGATIVE_POST_HIT_DEVIATION_LEVELS = []
 

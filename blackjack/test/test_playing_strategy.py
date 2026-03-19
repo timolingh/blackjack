@@ -326,7 +326,7 @@ def test_tc_minus_one_merges_both_bases(playing_strategy_deviations_h17):
 
 def test_post_hit_positive_tc3_stand_16vA():
     """Post-hit: TC >= 3 should stand 16 vs A (positive post-hit tier)."""
-    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    from blackjack.deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
     levels = {
         "positive": DEVIATION_LEVELS,
         "negative": NEGATIVE_DEVIATION_LEVELS,
@@ -343,7 +343,7 @@ def test_post_hit_positive_tc3_stand_16vA():
 
 def test_post_hit_positive_tc4_stand_16v9():
     """Post-hit: TC >= 4 should stand 16 vs 9 (positive post-hit tier)."""
-    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    from blackjack.deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
     levels = {
         "positive": DEVIATION_LEVELS,
         "negative": NEGATIVE_DEVIATION_LEVELS,
@@ -360,7 +360,7 @@ def test_post_hit_positive_tc4_stand_16v9():
 
 def test_post_hit_positive_tc4_stand_15v10():
     """Post-hit: TC >= 4 should stand 15 vs 10."""
-    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    from blackjack.deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
     levels = {
         "positive": DEVIATION_LEVELS,
         "negative": NEGATIVE_DEVIATION_LEVELS,
@@ -377,7 +377,7 @@ def test_post_hit_positive_tc4_stand_15v10():
 
 def test_post_hit_positive_tc5_stand_15vA():
     """Post-hit: TC >= 5 should stand 15 vs A."""
-    from deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
+    from blackjack.deviations import DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS, POST_HIT_DEVIATION_LEVELS
     levels = {
         "positive": DEVIATION_LEVELS,
         "negative": NEGATIVE_DEVIATION_LEVELS,

@@ -139,7 +139,7 @@ def playing_strategy_s17():
 
 @pytest.fixture
 def playing_strategy_deviations_h17():
-    from deviations import (
+    from blackjack.deviations import (
         DEVIATION_LEVELS,
         NEGATIVE_DEVIATION_LEVELS,
         POST_HIT_DEVIATION_LEVELS,
