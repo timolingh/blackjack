@@ -73,6 +73,8 @@ class PlayingStrategy:
             base_decision=base_decision,
             override=override,
             can_surrender=can_surrender,
+            running_count=running_count,
+            true_count=true_count,
         )
         if decision is None:
             decision = base_decision
@@ -99,6 +101,8 @@ class PlayingStrategy:
             base_decision=base_decision,
             override=override,
             can_surrender=can_surrender,
+            running_count=running_count,
+            true_count=true_count,
         )
         if decision is None:
             decision = base_decision
@@ -125,6 +129,8 @@ class PlayingStrategy:
             base_decision=base_decision,
             override=override,
             can_surrender=can_surrender,
+            running_count=running_count,
+            true_count=true_count,
         )
         if decision is None:
             decision = base_decision
@@ -147,6 +153,8 @@ class PlayingStrategy:
         base_decision: str,
         override: str | None,
         can_surrender: bool,
+        running_count: float | int | None,
+        true_count: float | int | None,
     ) -> str | None:
         """
         Preserve a surrender recommendation when available unless the override is also a surrender.
@@ -155,7 +163,15 @@ class PlayingStrategy:
         if override is None:
             return None
 
-        if can_surrender and base_decision.startswith("R") and not override.startswith("R"):
+        if (
+            can_surrender
+            and base_decision.startswith("R")
+            and not override.startswith("R")
+            and not (
+                (true_count is not None and true_count <= -1)
+                or (true_count is None and running_count is not None and running_count < 0)
+            )
+        ):
             return base_decision
 
         return override

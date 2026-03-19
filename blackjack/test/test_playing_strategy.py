@@ -184,6 +184,118 @@ def test_tc4_h17_16v8_hit_if_no_surrender(playing_strategy_deviations_h17):
     assert decision == 'H'
 
 
+def test_h17_16v9_surrender_basic(playing_strategy_deviations_h17):
+    """Default: hard 16 vs 9 should surrender when surrender is available."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='9', running_count=0, true_count=0, can_surrender=True
+    )
+    assert decision == 'Rh'
+
+
+def test_h17_16v9_hit_when_tc_negative(playing_strategy_deviations_h17):
+    """TC <= -1 deviation: hard 16 vs 9 should hit even with surrender available."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='9', running_count=-1, true_count=-1, can_surrender=True
+    )
+    assert decision == 'H'
+
+
+def test_h17_16v9_hit_when_no_surrender(playing_strategy_deviations_h17):
+    """No surrender available: hard 16 vs 9 should hit by default."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='9', running_count=0, true_count=0, can_surrender=False
+    )
+    assert decision == 'H'
+
+
+def test_h17_16v9_stand_tc4_no_surrender(playing_strategy_deviations_h17):
+    """Post-hit TC >= 4 deviation: hard 16 vs 9 should stand when surrender is unavailable."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='9', running_count=1, true_count=4, can_surrender=False
+    )
+    assert decision == 'S'
+
+
+def test_h17_16vA_surrender_basic(playing_strategy_deviations_h17):
+    """Baseline: hard 16 vs A should surrender when surrender is available."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='A', running_count=0, true_count=0, can_surrender=True
+    )
+    assert decision == 'Rh'
+
+
+def test_h17_16vA_hit_no_surrender(playing_strategy_deviations_h17):
+    """No surrender available: hard 16 vs A should hit by basic strategy."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='A', running_count=0, true_count=0, can_surrender=False
+    )
+    assert decision == 'H'
+
+
+def test_h17_16vA_stand_tc3_no_surrender(playing_strategy_deviations_h17):
+    """Post-hit TC >= 3 deviation: hard 16 vs A should stand when surrender is unavailable."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=16, dealer_up_card='A', running_count=1, true_count=3, can_surrender=False
+    )
+    assert decision == 'S'
+
+
+def test_h17_15v9_hit_basic(playing_strategy_deviations_h17):
+    """Baseline: hard 15 vs 9 hits."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='9', running_count=0, true_count=0, can_surrender=True
+    )
+    assert decision == 'H'
+
+
+def test_h17_15v9_hit_tc2_with_surrender(playing_strategy_deviations_h17):
+    """TC >= 2 with surrender available: hard 15 vs 9 should surrender per deviation."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='9', running_count=0, true_count=2, can_surrender=True
+    )
+    assert decision == 'Rh'
+
+
+def test_h17_15vA_surrender_tc_minus1(playing_strategy_deviations_h17):
+    """TC = -1: hard 15 vs A should surrender when surrender is available."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='A', running_count=0, true_count=-1, can_surrender=True
+    )
+    assert decision == 'Rh'
+
+
+def test_h17_15vA_surrender_tc_zero(playing_strategy_deviations_h17):
+    """TC = 0: hard 15 vs A should surrender when surrender is available."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='A', running_count=1, true_count=0, can_surrender=True
+    )
+    assert decision == 'Rh'
+
+
+def test_h17_15vA_surrender_tc_positive(playing_strategy_deviations_h17):
+    """TC > 0: hard 15 vs A should surrender when surrender is available."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='A', running_count=1, true_count=2, can_surrender=True
+    )
+    assert decision == 'Rh'
+
+
+def test_h17_15vA_hit_no_surrender(playing_strategy_deviations_h17):
+    """No surrender: hard 15 vs A should hit by default."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='A', running_count=0, true_count=0, can_surrender=False
+    )
+    assert decision == 'H'
+
+
+def test_h17_15vA_stand_tc5_no_surrender(playing_strategy_deviations_h17):
+    """No surrender: TC >= 5 deviation should stand 15 vs A."""
+    decision = playing_strategy_deviations_h17.hard(
+        total=15, dealer_up_card='A', running_count=1, true_count=5, can_surrender=False
+    )
+    assert decision == 'S'
+
+
 def test_tc4_h17_16v8_surrender_if_allowed(playing_strategy_deviations_h17):
     """TC >= 4: hard 16 vs 8 should still surrender when surrender is available."""
     decision = playing_strategy_deviations_h17.hard(
