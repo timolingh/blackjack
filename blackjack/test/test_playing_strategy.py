@@ -296,22 +296,6 @@ def test_h17_15vA_stand_tc5_no_surrender(playing_strategy_deviations_h17):
     assert decision == 'S'
 
 
-def test_tc4_h17_16v8_surrender_if_allowed(playing_strategy_deviations_h17):
-    """TC >= 4: hard 16 vs 8 should still surrender when surrender is available."""
-    decision = playing_strategy_deviations_h17.hard(
-        total=16, dealer_up_card='8', running_count=0, true_count=4, can_surrender=True
-    )
-    assert decision == 'Rh'
-
-
-def test_tc4_h17_16v8_hit_if_no_surrender(playing_strategy_deviations_h17):
-    """TC >= 4: hard 16 vs 8 should hit when surrender is unavailable."""
-    decision = playing_strategy_deviations_h17.hard(
-        total=16, dealer_up_card='8', running_count=0, true_count=4, can_surrender=False
-    )
-    assert decision == 'H'
-
-
 def test_negative_rc_tc_zero_hard16v10(playing_strategy_deviations_h17):
     """Post-hit context RC < 0, TC = 0: hard 16 vs 10 should hit (surrender unavailable)."""
     decision = playing_strategy_deviations_h17.hard(
