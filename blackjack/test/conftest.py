@@ -137,6 +137,29 @@ def playing_strategy_h17():
 def playing_strategy_s17():
     return PlayingStrategy(s17=True)
 
+@pytest.fixture
+def playing_strategy_deviations_h17():
+    from blackjack.deviations import (
+        DEVIATION_LEVELS,
+        NEGATIVE_DEVIATION_LEVELS,
+        POST_HIT_DEVIATION_LEVELS,
+        NEGATIVE_POST_HIT_DEVIATION_LEVELS,
+    )
+    levels = {"positive": DEVIATION_LEVELS, "negative": NEGATIVE_DEVIATION_LEVELS}
+    post_levels = {
+        "positive": POST_HIT_DEVIATION_LEVELS.get("positive", []),
+        "negative": POST_HIT_DEVIATION_LEVELS.get("negative", []),
+    } if isinstance(POST_HIT_DEVIATION_LEVELS, dict) else {
+        "positive": POST_HIT_DEVIATION_LEVELS,
+        "negative": NEGATIVE_POST_HIT_DEVIATION_LEVELS,
+    }
+    return PlayingStrategy(
+        s17=False,
+        use_deviations=True,
+        deviations_levels=levels,
+        post_hit_deviations=post_levels,
+    )
+
 
 @pytest.fixture
 def stats():

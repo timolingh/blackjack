@@ -98,7 +98,10 @@ def player_initial_decision(
     dealer_hand_is_blackjack: bool,
     dealer_up_card: str,
     rules: Rules,
-    playing_strategy: PlayingStrategy
+    playing_strategy: PlayingStrategy,
+    running_count: float | int | None = None,
+    true_count: float | int | None = None,
+    can_surrender: bool = True,
 ) -> str | None:
     """
     Determines a player's initial decision based on the first two cards dealt
@@ -178,7 +181,10 @@ def player_initial_decision(
         hand=first_hand,
         dealer_up_card=dealer_up_card,
         max_hands=rules.max_hands,
-        playing_strategy=playing_strategy
+        playing_strategy=playing_strategy,
+        running_count=running_count,
+        true_count=true_count,
+        can_surrender=can_surrender,
     )
 
     if rules.late_surrender and decision in {'Rh', 'Rp', 'Rs'}:
@@ -213,6 +219,12 @@ def player_plays_hands(
     playing_strategy: PlayingStrategy
 ) -> None:
     """Player plays out their hand(s)."""
+    running_count, true_count = (None, None)
+    if isinstance(player, CardCounter):
+        system = player.card_counting_system
+        running_count = shoe.running_count(card_counting_system=system)
+        true_count = shoe.true_count(card_counting_system=system)
+
     decision = player_initial_decision(
         player=player,
         player_stats=player_stats,
@@ -222,7 +234,10 @@ def player_plays_hands(
         dealer_hand_is_blackjack=dealer_hand_is_blackjack,
         dealer_up_card=dealer_up_card,
         rules=rules,
-        playing_strategy=playing_strategy
+        playing_strategy=playing_strategy,
+        running_count=running_count,
+        true_count=true_count,
+        can_surrender=rules.late_surrender,
     )
 
     if decision is None:
@@ -293,11 +308,20 @@ def player_plays_hands(
             hand.status = HandStatus.SETTLED
 
         if hand.status == HandStatus.IN_PLAY:
+            running_count, true_count = (None, None)
+            if isinstance(player, CardCounter):
+                system = player.card_counting_system
+                running_count = shoe.running_count(card_counting_system=system)
+                true_count = shoe.true_count(card_counting_system=system)
+
             decision = player.decision(
                 hand=hand,
                 dealer_up_card=dealer_up_card,
                 max_hands=rules.max_hands,
-                playing_strategy=playing_strategy
+                playing_strategy=playing_strategy,
+                running_count=running_count,
+                true_count=true_count,
+                can_surrender=False,
             )
         elif another_hand > 0:
             another_hand -= 1

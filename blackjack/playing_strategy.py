@@ -1,3 +1,6 @@
+import math
+from typing import Any
+
 from blackjack.source.basic_strategy import H17_HARD_DICT, H17_SOFT_DICT, H17_PAIR_DICT
 from blackjack.source.basic_strategy import S17_HARD_DICT, S17_SOFT_DICT, S17_PAIR_DICT
 
@@ -7,15 +10,24 @@ class PlayingStrategy:
     Represents the decisions a player will make when faced with a
     pair split situation or a certain soft or hard count. Assumes the
     use of basic strategy.
-
     """
-    def __init__(self, s17: bool):
+
+    def __init__(
+        self,
+        s17: bool,
+        use_deviations: bool = False,
+        deviations_levels: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None = None,
+        post_hit_deviations: dict[str, list[dict[str, Any]]] | None = None,
+    ):
         """
         Parameters
         ----------
         s17
             True if dealer stands on a soft 17, False otherwise
-
+        use_deviations
+            True to enable deviation lookups based on running/true count
+        deviations_levels
+            Optional list of deviation dictionaries to use; falls back to deviations.DEVIATION_LEVELS
         """
         if s17:
             self._hard_dict = S17_HARD_DICT
@@ -26,11 +38,295 @@ class PlayingStrategy:
             self._soft_dict = H17_SOFT_DICT
             self._pair_dict = H17_PAIR_DICT
 
-    def hard(self, total: int, dealer_up_card: str) -> str:
-        return self._hard_dict[total][dealer_up_card]
+        # load deviation tables up front so they can be toggled per-decision
+        self._default_use_deviations = use_deviations
+        pos_levels, neg_levels = self._load_deviation_levels(deviations_levels)
+        self._deviation_levels_pos = pos_levels
+        self._deviation_levels_neg = neg_levels
+        post_pos, post_neg = self._load_post_hit_levels(post_hit_deviations)
+        self._post_hit_levels_pos = post_pos
+        self._post_hit_levels_neg = post_neg
 
-    def soft(self, total: int, dealer_up_card: str) -> str:
-        return self._soft_dict[total][dealer_up_card]
+    def _use_deviations_enabled(self, override: bool | None) -> bool:
+        """Return whether deviations should be applied for this decision."""
+        if override is not None:
+            return override
+        return self._default_use_deviations
 
-    def pair(self, card: str, dealer_up_card: str) -> str:
-        return self._pair_dict[card][dealer_up_card]
+    def hard(
+        self,
+        total: int,
+        dealer_up_card: str,
+        running_count: float | int | None = None,
+        true_count: float | int | None = None,
+        can_surrender: bool = True,
+        use_deviations: bool | None = None,
+    ) -> str:
+        base_decision = self._hard_dict[total][dealer_up_card]
+        override = self._deviation_override(
+            hand_type="hard",
+            player_key=total,
+            dealer_up_card=dealer_up_card,
+            running_count=running_count,
+            true_count=true_count,
+            can_surrender=can_surrender,
+            use_deviations=use_deviations,
+        )
+        decision = self._respect_surrender_priority(
+            base_decision=base_decision,
+            override=override,
+            can_surrender=can_surrender,
+            running_count=running_count,
+            true_count=true_count,
+        )
+        if decision is None:
+            decision = base_decision
+        return self._resolve_decision(decision, can_surrender=can_surrender)
+
+    def soft(
+        self,
+        total: int,
+        dealer_up_card: str,
+        running_count: float | int | None = None,
+        true_count: float | int | None = None,
+        can_surrender: bool = True,
+        use_deviations: bool | None = None,
+    ) -> str:
+        base_decision = self._soft_dict[total][dealer_up_card]
+        override = self._deviation_override(
+            hand_type="soft",
+            player_key=total,
+            dealer_up_card=dealer_up_card,
+            running_count=running_count,
+            true_count=true_count,
+            can_surrender=can_surrender,
+            use_deviations=use_deviations,
+        )
+        decision = self._respect_surrender_priority(
+            base_decision=base_decision,
+            override=override,
+            can_surrender=can_surrender,
+            running_count=running_count,
+            true_count=true_count,
+        )
+        if decision is None:
+            decision = base_decision
+        return self._resolve_decision(decision, can_surrender=can_surrender)
+
+    def pair(
+        self,
+        card: str,
+        dealer_up_card: str,
+        running_count: float | int | None = None,
+        true_count: float | int | None = None,
+        can_surrender: bool = True,
+        use_deviations: bool | None = None,
+    ) -> str:
+        base_decision = self._pair_dict[card][dealer_up_card]
+        override = self._deviation_override(
+            hand_type="pair",
+            player_key=card,
+            dealer_up_card=dealer_up_card,
+            running_count=running_count,
+            true_count=true_count,
+            can_surrender=can_surrender,
+            use_deviations=use_deviations,
+        )
+        decision = self._respect_surrender_priority(
+            base_decision=base_decision,
+            override=override,
+            can_surrender=can_surrender,
+            running_count=running_count,
+            true_count=true_count,
+        )
+        if decision is None:
+            decision = base_decision
+        return self._resolve_decision(decision, can_surrender=can_surrender)
+
+    def _resolve_decision(self, decision: str | dict, can_surrender: bool) -> str:
+        """Return the decision string, handling dict entries when present and surrender eligibility."""
+        if isinstance(decision, dict):
+            return self._handle_decision_dict(decision)
+        if not can_surrender and decision in {"Rh", "Rs", "Rp"}:
+            return {"Rh": "H", "Rs": "S", "Rp": "P"}[decision]
+        return decision
+
+    def _handle_decision_dict(self, decision_dict: dict) -> str:
+        """Placeholder for future dict-based decision handling."""
+        raise NotImplementedError("Dict-based player decisions are not implemented yet.")
+
+    def _respect_surrender_priority(
+        self,
+        base_decision: str,
+        override: str | None,
+        can_surrender: bool,
+        running_count: float | int | None,
+        true_count: float | int | None,
+    ) -> str | None:
+        """
+        Preserve a surrender recommendation when available unless the override is also a surrender.
+        This keeps pre-hit surrender decisions from being replaced by count-based deviations.
+        """
+        if override is None:
+            return None
+
+        if (
+            can_surrender
+            and base_decision.startswith("R")
+            and not override.startswith("R")
+            and not (
+                (true_count is not None and true_count <= -1)
+                or (true_count is None and running_count is not None and running_count < 0)
+            )
+        ):
+            return base_decision
+
+        return override
+
+    def _deviation_override(
+        self,
+        hand_type: str,
+        player_key: Any,
+        dealer_up_card: str,
+        running_count: float | int | None,
+        true_count: float | int | None,
+        can_surrender: bool,
+        use_deviations: bool | None,
+    ) -> str | None:
+        if not self._use_deviations_enabled(use_deviations):
+            return None
+
+        active = self._build_active_deviations(
+            running_count=running_count,
+            true_count=true_count,
+            can_surrender=can_surrender,
+        )
+        return active.get(hand_type, {}).get(player_key, {}).get(dealer_up_card)
+
+    def _build_active_deviations(
+        self,
+        running_count: float | int | None,
+        true_count: float | int | None,
+        can_surrender: bool,
+    ) -> dict[str, dict]:
+        pos_levels = self._deviation_levels_pos if can_surrender else self._post_hit_levels_pos
+        neg_levels = self._deviation_levels_neg if can_surrender else self._post_hit_levels_neg
+
+        level_sets = self._select_levels(
+            levels_pos=pos_levels,
+            levels_neg=neg_levels,
+            running_count=running_count,
+            true_count=true_count,
+            prefer_negative_only=not can_surrender,
+        )
+        if not level_sets:
+            return {}
+
+        levels_to_merge: list[dict[str, Any]] = []
+        tc_floor = math.floor(true_count) if true_count is not None else None
+
+        for levels, use_negative in level_sets:
+            if not levels:
+                continue
+            # always include the base tier of this side
+            levels_to_merge.append(levels[0])
+
+            if tc_floor is None or len(levels) <= 1:
+                continue
+
+            if use_negative and tc_floor <= -1:
+                max_idx = min(abs(tc_floor), len(levels) - 1)
+                for idx in range(1, max_idx + 1):
+                    levels_to_merge.append(levels[idx])
+            elif (not use_negative) and tc_floor >= 1:
+                max_idx = min(tc_floor, len(levels) - 1)
+                for idx in range(1, max_idx + 1):
+                    levels_to_merge.append(levels[idx])
+
+        merged: dict[str, dict] = {}
+        for level in levels_to_merge:
+            for hand_type, deviation_map in level.items():
+                merged.setdefault(hand_type, {})
+                for player_key, dealer_map in deviation_map.items():
+                    merged[hand_type].setdefault(player_key, {})
+                    merged[hand_type][player_key].update(dealer_map)
+
+        return merged
+
+    def _select_levels(
+        self,
+        levels_pos: list[dict[str, Any]],
+        levels_neg: list[dict[str, Any]],
+        running_count: float | int | None,
+        true_count: float | int | None,
+        prefer_negative_only: bool = False,
+    ) -> list[tuple[list[dict[str, Any]], bool]]:
+        # Returns list of (levels, use_negative flag) to merge
+        if true_count is not None:
+            if true_count < -1:
+                return [(levels_neg, True)]
+            # true_count == -1: merge both
+            if true_count == -1:
+                return [
+                    (levels_pos, False),
+                    (levels_neg, True),
+                ]
+            # true_count >= 0: use positive, but if running_count is negative, also merge negative base
+            if running_count is not None and running_count < 0:
+                if prefer_negative_only:
+                    return [(levels_neg, True)]
+                return [
+                    (levels_pos, False),
+                    (levels_neg, True),
+                ]
+            return [(levels_pos, False)]
+
+        if running_count is not None and running_count < 0:
+            return [(levels_neg, True)]
+        return [(levels_pos, False)]
+
+    def _load_deviation_levels(
+        self,
+        overrides: list[dict[str, Any]] | dict[str, list[dict[str, Any]]] | None
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        if overrides is not None:
+            if isinstance(overrides, dict):
+                pos = overrides.get("positive", [])
+                neg = overrides.get("negative", [])
+                return pos, neg
+            return overrides, []
+
+        try:
+            from blackjack.deviations import DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            DEVIATION_LEVELS = []
+        try:
+            from blackjack.deviations import NEGATIVE_DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            NEGATIVE_DEVIATION_LEVELS = []
+
+        return DEVIATION_LEVELS, NEGATIVE_DEVIATION_LEVELS
+
+    def _load_post_hit_levels(
+        self,
+        overrides: dict[str, list[dict[str, Any]]] | None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        if overrides is not None:
+            return overrides.get("positive", []), overrides.get("negative", [])
+
+        try:
+            from blackjack.deviations import POST_HIT_DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            POST_HIT_DEVIATION_LEVELS = []
+        try:
+            from blackjack.deviations import NEGATIVE_POST_HIT_DEVIATION_LEVELS  # type: ignore
+        except Exception:
+            NEGATIVE_POST_HIT_DEVIATION_LEVELS = []
+
+        if isinstance(POST_HIT_DEVIATION_LEVELS, dict):
+            pos = POST_HIT_DEVIATION_LEVELS.get("positive", [])
+            neg = POST_HIT_DEVIATION_LEVELS.get("negative", [])
+        else:
+            pos = POST_HIT_DEVIATION_LEVELS
+            neg = NEGATIVE_POST_HIT_DEVIATION_LEVELS
+        return pos, neg

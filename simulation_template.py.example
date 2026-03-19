@@ -47,6 +47,7 @@ def make_player() -> CardCounter:
             5: 125,
         },
         insurance=3,
+        use_deviations=False,
     )
     # Example: flat-betting player (uncomment return below and import Player above)
     # return Player(
