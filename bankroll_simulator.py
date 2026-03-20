@@ -2,6 +2,9 @@ import concurrent.futures
 import multiprocessing as mp
 import os
 import numpy as np
+from collections import defaultdict
+
+from blackjack.enums import StatsCategory
 
 try:
     from simulation_template import SIMULATION_PARAMS, make_blackjack, make_player
@@ -41,6 +44,28 @@ def _run_once(seed: int, number_of_shoes: int, penetration: float, shoe_size: in
     )
     stats_dict = player.stats.summary(string=False)
     hands_played = stats_dict.get('TOTAL HANDS PLAYED', 0)
+
+    def _bucket_count(count: float | int | None) -> float | int | None:
+        if count is None:
+            return None
+        if count < -10:
+            return -10
+        if count > 10:
+            return 10
+        return count
+
+    # Collect per-count hands and winnings for later aggregation
+    per_count: dict[float | int | None, dict[str, float]] = {}
+    for (count, category), value in player.stats.stats.items():
+        bucket = _bucket_count(count)
+        if bucket is None:
+            continue
+        bucket_stats = per_count.setdefault(bucket, {"hands": 0.0, "winnings": 0.0})
+        if category == StatsCategory.TOTAL_HANDS_PLAYED:
+            bucket_stats["hands"] += value
+        elif category == StatsCategory.NET_WINNINGS:
+            bucket_stats["winnings"] += value
+
     winnings = player.bankroll - initial_bankroll
     if player.is_ruined:
         outcome = 'bankrupt'
@@ -48,7 +73,7 @@ def _run_once(seed: int, number_of_shoes: int, penetration: float, shoe_size: in
         outcome = 'goal'
     else:
         outcome = 'ran_out'
-    return outcome, winnings, hands_played
+    return outcome, winnings, hands_played, per_count
 
 
 def main():
@@ -68,6 +93,8 @@ def main():
     total_winnings_accum = 0
     total_hands_accum = 0
     winnings_samples: list[float] = []
+    count_hands: defaultdict[float | int, float] = defaultdict(float)
+    count_winnings: defaultdict[float | int, float] = defaultdict(float)
 
     max_workers = min(number_of_runs, os.cpu_count() or 2)
 
@@ -80,7 +107,7 @@ def main():
                 for run_idx in range(number_of_runs)
             ]
             for future in concurrent.futures.as_completed(futures):
-                outcome, winnings, hands_played = future.result()
+                outcome, winnings, hands_played, per_count = future.result()
                 if outcome == 'bankrupt':
                     bankrupt_count += 1
                 elif outcome == 'goal':
@@ -90,6 +117,9 @@ def main():
                 total_winnings_accum += winnings
                 total_hands_accum += hands_played
                 winnings_samples.append(winnings)
+                for bucket, stats in per_count.items():
+                    count_hands[bucket] += stats["hands"]
+                    count_winnings[bucket] += stats["winnings"]
     except PermissionError:
         # Some environments forbid process pools; fall back to threads.
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -98,7 +128,7 @@ def main():
                 for run_idx in range(number_of_runs)
             ]
             for future in concurrent.futures.as_completed(futures):
-                outcome, winnings, hands_played = future.result()
+                outcome, winnings, hands_played, per_count = future.result()
                 if outcome == 'bankrupt':
                     bankrupt_count += 1
                 elif outcome == 'goal':
@@ -108,6 +138,9 @@ def main():
                 total_winnings_accum += winnings
                 total_hands_accum += hands_played
                 winnings_samples.append(winnings)
+                for bucket, stats in per_count.items():
+                    count_hands[bucket] += stats["hands"]
+                    count_winnings[bucket] += stats["winnings"]
 
     avg_total_winnings = total_winnings_accum / number_of_runs
     risk_of_ruin = bankrupt_count / number_of_runs
@@ -129,6 +162,19 @@ def main():
     print(f"80th percentile winnings: {_fmt_money(p80)}")
     print(f"Total hands played across runs: {total_hands_accum}")
     print(f"Risk of ruin: {risk_of_ruin:.2%}")
+
+    if count_hands:
+        print("\nResults by true count (all runs):")
+        print(f"{'Count':>7} | {'Hands':>10} | {'Total Winnings':>16} | {'Mean/Hand':>12}")
+        print("-" * 55)
+        display_order = list(range(-10, 11))
+        for count in display_order:
+            if count not in count_hands:
+                continue
+            hands = count_hands[count]
+            winnings = count_winnings.get(count, 0.0)
+            mean = winnings / hands if hands else 0.0
+            print(f"{str(count):>7} | {int(hands):>10,} | {_fmt_money(winnings):>16} | {_fmt_money(mean):>12}")
 
     return 0
 
